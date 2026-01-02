@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate', // Güncelleme gelince otomatik yenile
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Aura - Güzellik ve Bakım',
-        short_name: 'Aura',
+        name: 'Huvi - Güzellik ve Bakım',
+        short_name: 'Huvi',
         description: 'Uzmanlardan güzellik tüyoları, randevu ve ürün keşfi.',
         theme_color: '#d65063', // Bizim Rose Gold (primary-500) rengimiz
         background_color: '#ffffff',
