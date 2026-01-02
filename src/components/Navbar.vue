@@ -36,7 +36,7 @@
               <img src="/vite.svg" alt="Logo" class="h-8 w-auto transition transform group-hover:scale-110" /> 
               <!-- İsim -->
               <span class="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition font-serif tracking-wide">
-                Aura
+                Huvi
               </span>
             </RouterLink>
           </div>

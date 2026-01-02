@@ -33,7 +33,7 @@
         <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-primary-600 text-white">
           <div class="flex items-center gap-2">
             <!-- Logo Küçük -->
-            <span class="font-serif text-xl font-bold tracking-wide">Aura</span>
+            <span class="font-serif text-xl font-bold tracking-wide">Huvi</span>
           </div>
           <button @click="closeSidebar" class="focus:outline-none hover:bg-primary-700 rounded-full p-1 transition">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
