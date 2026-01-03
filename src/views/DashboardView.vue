@@ -237,6 +237,9 @@
                   <RouterLink to="/dashboard/posts" class="block w-full text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition">
                     📂 Tüm Yayınları Gör
                   </RouterLink>
+                  <RouterLink to="/create-business" class="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-black transition shadow-sm">
+                    🏢 İşletme Hesabı Aç
+                  </RouterLink>
                 </div>
               </div>
   
