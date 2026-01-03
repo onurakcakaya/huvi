@@ -129,7 +129,7 @@ router.beforeEach(async (to, from, next) => {
 
   // 2. Rol kontrolü gereken bir sayfa mı? (Dashboard gibi)
   if (to.meta.requiresRole) {
-    if (['publisher', 'business', 'admin'].includes(role)) {
+    if (['publisher', 'admin'].includes(role)) {
       next() // Yetkisi var, geçsin
     } else {
       next('/') // Yetkisi yok (User), anasayfaya at

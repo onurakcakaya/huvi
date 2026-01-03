@@ -75,7 +75,7 @@
                   <p class="text-sm font-bold text-gray-800 truncate">{{ authStore.user.email }}</p>
                 </div>
   
-                <RouterLink v-if="['publisher', 'business'].includes(authStore.profile?.role)" to="/dashboard" class="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition">
+                <RouterLink v-if="['publisher'].includes(authStore.profile?.role)" to="/dashboard" class="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition">
                   <span class="mr-2">⚡</span> Yönetim Paneli
                 </RouterLink>
                 

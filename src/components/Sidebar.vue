@@ -68,7 +68,7 @@
             <li class="border-t border-gray-100 my-2 pt-2"></li>
   
             <!-- YAYINCI MENÜSÜ (Eğer Yetkili İse) -->
-            <template v-if="['publisher', 'business'].includes(authStore.profile?.role)">
+            <template v-if="['publisher'].includes(authStore.profile?.role)">
               <li class="px-6 py-2">
                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Yönetim Paneli</span>
               </li>
