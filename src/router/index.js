@@ -103,7 +103,13 @@ const router = createRouter({
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue')
-    }
+    },
+    {
+      path: '/apply-business',
+      name: 'apply-business',
+      component: () => import('../views/ApplyBusinessView.vue'),
+      meta: { requiresAuth: true }
+    },
   ]
 })
 
