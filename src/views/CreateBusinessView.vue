@@ -25,42 +25,38 @@
     }
     
     const handleCreate = async () => {
-      try {
-        loading.value = true
-        message.value = ''
-    
-        if (!name.value || !city.value) {
-          throw new Error('İşletme adı ve şehir zorunludur.')
-        }
-    
-        const slug = createSlug(name.value) + '-' + Math.floor(Math.random() * 1000)
-    
-        const { data, error } = await supabase
-          .from('businesses')
-          .insert({
-            name: name.value,
-            slug: slug,
-            city: city.value,
-            address: address.value,
-            phone: phone.value,
-            owner_id: authStore.user.id
-          })
-          .select()
-          .single()
-    
-        if (error) throw error
-    
-        message.value = 'İşletmeniz başarıyla kuruldu! Yönlendiriliyorsunuz... 🎉'
-        
-        // İşletme Dashboardına Yönlendir (Bir sonraki adımda yapacağız)
-        setTimeout(() => router.push('/dashboard'), 2000)
-    
-      } catch (error) {
-        message.value = 'Hata: ' + error.message
-      } finally {
-        loading.value = false
-      }
+  try {
+    loading.value = true
+    message.value = ''
+
+    if (!name.value || !city.value) {
+      throw new Error('İşletme adı ve şehir zorunludur.')
     }
+
+    // ARTIK DOĞRUDAN İŞLETME KURMUYORUZ
+    // BAŞVURU YAPIYORUZ
+    const { error } = await supabase
+      .from('business_applications') // <--- Tablo değişti
+      .insert({
+        business_name: name.value,
+        city: city.value,
+        phone: phone.value,
+        user_id: authStore.user.id,
+        status: 'pending' // Beklemede
+      })
+
+    if (error) throw error
+
+    // Kullanıcıya bilgi verip anasayfaya atıyoruz
+    message.value = 'Başvurunuz alındı! Ekibimiz inceledikten sonra size dönüş yapacak. ✅'
+    setTimeout(() => router.push('/'), 3000)
+
+  } catch (error) {
+    message.value = 'Hata: ' + error.message
+  } finally {
+    loading.value = false
+  }
+}
     </script>
     
     <template>
@@ -69,7 +65,7 @@
           
           <div class="text-center mb-8">
             <div class="text-4xl mb-4">🏢</div>
-            <h1 class="text-2xl font-bold text-gray-900">İşletmeni Oluştur</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Başvur ve İşletmeni Oluştur</h1>
             <p class="text-gray-500 text-sm mt-2">
               Salonunu, stüdyonu veya kliniğini Huvi'ye taşı, müşterilerine ulaş.
             </p>
