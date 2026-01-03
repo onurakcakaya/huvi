@@ -39,7 +39,7 @@
       stats.value.totalSaves = postsData.reduce((sum, post) => sum + (post.saves_count || 0), 0)
       stats.value.totalComments = postsData.reduce((sum, post) => sum + (post.comments_count || 0), 0)
   
-      // 2. PROFİL VERİLERİNİ ÇEK
+      // 2. PROFİL VERİLERİNİ ÇEK (Takipçi Sayıları)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('followers_count, following_count')
@@ -141,7 +141,6 @@
         <div v-else>
           <!-- 3. İSTATİSTİK KARTLARI -->
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            
             <!-- Takipçi -->
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
               <p class="text-xs font-medium text-gray-500 uppercase">Takipçi</p>
@@ -150,7 +149,6 @@
                 <span class="text-xl">👥</span>
               </div>
             </div>
-  
             <!-- Takip -->
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
               <p class="text-xs font-medium text-gray-500 uppercase">Takip</p>
@@ -159,7 +157,6 @@
                 <span class="text-xl">👣</span>
               </div>
             </div>
-  
             <!-- İçerik -->
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
               <p class="text-xs font-medium text-gray-500 uppercase">İçerik</p>
@@ -168,7 +165,6 @@
                 <span class="text-xl">📝</span>
               </div>
             </div>
-  
             <!-- Beğeni -->
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
               <p class="text-xs font-medium text-gray-500 uppercase">Beğeni</p>
@@ -177,7 +173,6 @@
                 <span class="text-xl">❤️</span>
               </div>
             </div>
-  
             <!-- Kaydetme -->
             <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
               <p class="text-xs font-medium text-gray-500 uppercase">Kaydetme</p>
@@ -186,7 +181,6 @@
                 <span class="text-xl">🔖</span>
               </div>
             </div>
-  
              <!-- Yorumlar -->
              <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
               <p class="text-xs font-medium text-gray-500 uppercase">Yorumlar</p>
@@ -195,13 +189,12 @@
                 <span class="text-xl">💬</span>
               </div>
             </div>
-  
           </div>
   
           <!-- 4. KISAYOLLAR & SON AKTİVİTELER -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <!-- Sol: Kısayollar -->
+            <!-- Sol: Kısayollar (TEMİZLENDİ) -->
             <div class="lg:col-span-1 space-y-6">
               <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <h3 class="font-bold text-gray-800 mb-4">Hızlı İşlemler</h3>
