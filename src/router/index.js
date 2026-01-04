@@ -110,6 +110,18 @@ const router = createRouter({
       component: () => import('../views/ApplyBusinessView.vue'),
       meta: { requiresAuth: true }
     },
+    { 
+      path: '/dashboard/business', 
+      name: 'business-edit', 
+      component: () => import('../views/BusinessEditView.vue'),
+      meta: { requiresAuth: true, requiresRole: true } 
+    },
+    // İŞLETME VİTRİN (Herkese Açık)
+    { 
+      path: '/business/:slug', 
+      name: 'business-profile', 
+      component: () => import('../views/BusinessProfileView.vue') 
+    },
   ]
 })
 
