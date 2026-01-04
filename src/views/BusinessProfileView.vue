@@ -67,11 +67,13 @@
                     <div>
                       <h1 class="text-3xl font-bold text-gray-900">{{ business.name }}</h1>
                       <p class="text-gray-500 flex items-center gap-1 mt-1">
-                        <span>📍</span> {{ business.city }} <span v-if="business.address">• {{ business.address }}</span>
-                      </p>
-                      <p v-if="business.description" class="text-gray-600 mt-3 text-sm max-w-2xl leading-relaxed">
-                        {{ business.description }}
-                      </p>
+  <!-- Şehir / İlçe Gösterimi -->
+  <span>📍</span> 
+  {{ business.district ? business.district + ' /' : '' }} {{ business.city }}
+  
+  <!-- Açık Adres Varsa Göster -->
+  <span v-if="business.address" class="hidden sm:inline">• {{ business.address }}</span>
+</p>
                     </div>
     
                     <!-- Aksiyon Butonları -->

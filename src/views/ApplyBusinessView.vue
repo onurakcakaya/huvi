@@ -11,6 +11,7 @@
       name: '',
       city: '',
       phone: '',
+      district: '',
       type: '',
       social_link: ''
     })
@@ -41,6 +42,7 @@
             business_name: form.value.name,
             city: form.value.city,
             phone: form.value.phone,
+            district: form.value.district,
             type: form.value.type,
             social_link: form.value.social_link || null,
             status: 'pending'

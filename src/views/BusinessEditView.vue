@@ -91,12 +91,12 @@
             address: business.value.address,
             phone: business.value.phone,
             city: business.value.city,
+            district: business.value.district, // Yeni ilçe alanı
             instagram_url: business.value.instagram_url,
             website_url: business.value.website_url,
             maps_url: business.value.maps_url,
             logo_url: newLogoUrl,
             cover_url: newCoverUrl,
-            // Slug ve Name'i değiştirmiyoruz (Güvenlik ve SEO için sabit kalsın şimdilik)
           })
           .eq('id', business.value.id)
     
@@ -184,20 +184,29 @@
                   <textarea v-model="business.description" rows="3" placeholder="İşletmeniz hakkında kısa bir bilgi..." class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"></textarea>
                 </div>
     
+                <!-- ADRES BİLGİLERİ -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Şehir</label>
-                    <input v-model="business.city" type="text" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Şehir (İl)</label>
+                    <input v-model="business.city" type="text" placeholder="İstanbul" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
                   </div>
+                  
+                  <!-- YENİ: İlçe Alanı -->
+                  <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">İlçe</label>
+                    <input v-model="business.district" type="text" placeholder="Kadıköy" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                  </div>
+                </div>
+    
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
                     <label class="block text-sm font-bold text-gray-700 mb-1">Telefon</label>
                     <input v-model="business.phone" type="text" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
                   </div>
-                </div>
-    
-                <div>
-                  <label class="block text-sm font-bold text-gray-700 mb-1">Açık Adres</label>
-                  <input v-model="business.address" type="text" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                  <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Açık Adres</label>
+                    <textarea v-model="business.address" rows="1" placeholder="Mahalle, Sokak, No..." class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"></textarea>
+                  </div>
                 </div>
               </div>
     
