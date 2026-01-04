@@ -19,6 +19,18 @@
     const coverFile = ref(null)
     const coverPreview = ref('')
     
+    // İşletme Tipleri Listesi
+    const businessTypes = [
+      'Kuaför (Kadın)', 
+      'Berber (Erkek)', 
+      'Güzellik Merkezi', 
+      'Tırnak Stüdyosu', 
+      'Spa & Masaj', 
+      'Dövme Stüdyosu',
+      'Diyetisyen / Klinik',
+      'Diğer'
+    ]
+    
     // Veriyi Çek
     onMounted(async () => {
       try {
@@ -37,7 +49,6 @@
     
       } catch (error) {
         console.error('İşletme verisi alınamadı:', error)
-        // Eğer işletmesi yoksa oluşturmaya atabiliriz veya dashboard'a dönebiliriz
         router.push('/dashboard')
       } finally {
         loading.value = false
@@ -66,7 +77,6 @@
       const fileExt = file.name.split('.').pop()
       const fileName = `${pathPrefix}/${business.value.id}-${Date.now()}.${fileExt}`
       
-      // 'business-media' bucket'ı önceden oluşturulmuş olmalı
       const { error } = await supabase.storage.from('business-media').upload(fileName, file, { upsert: true })
       if (error) throw error
       
@@ -91,6 +101,8 @@
         const { error } = await supabase
           .from('businesses')
           .update({
+            name: business.value.name,       // <--- EKLENDİ
+            type: business.value.type,       // <--- EKLENDİ
             description: business.value.description,
             address: business.value.address,
             district: business.value.district,
@@ -101,7 +113,6 @@
             maps_url: business.value.maps_url,
             logo_url: newLogoUrl,
             cover_url: newCoverUrl,
-            // Name ve Slug değişmiyor (Güvenlik)
           })
           .eq('id', business.value.id)
     
@@ -176,12 +187,33 @@
     
               <hr class="border-gray-100">
     
-              <!-- 2. TEMEL BİLGİLER -->
+              <!-- 2. KİMLİK BİLGİLERİ (YENİ EKLENDİ) -->
               <div class="space-y-4">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label for="name" class="block text-sm font-bold text-gray-700 mb-1">İşletme Adı</label>
+                    <input id="name" name="name" v-model="business.name" type="text" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                  </div>
+                  <div>
+                    <label for="type" class="block text-sm font-bold text-gray-700 mb-1">İşletme Tipi</label>
+                    <select id="type" name="type" v-model="business.type" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-white">
+                      <option v-for="type in businessTypes" :key="type" :value="type">{{ type }}</option>
+                    </select>
+                  </div>
+                </div>
+    
                 <div>
                   <label for="description" class="block text-sm font-bold text-gray-700 mb-1">Açıklama / Slogan</label>
                   <textarea id="description" name="description" v-model="business.description" rows="3" placeholder="İşletmeniz hakkında kısa bir bilgi..." class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"></textarea>
                 </div>
+              </div>
+    
+              <hr class="border-gray-100">
+    
+              <!-- 3. ADRES BİLGİLERİ -->
+              <div class="space-y-4">
+                <h3 class="font-bold text-gray-800">İletişim & Konum</h3>
     
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -208,7 +240,7 @@
     
               <hr class="border-gray-100">
     
-              <!-- 3. BAĞLANTILAR -->
+              <!-- 4. BAĞLANTILAR -->
               <div class="space-y-4">
                 <h3 class="font-bold text-gray-800">Sosyal Medya & Harita</h3>
                 
