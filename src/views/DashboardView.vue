@@ -43,30 +43,18 @@
       const { data: recent } = await supabase.from('posts').select('id, title, created_at, likes_count').eq('user_id', userId).order('created_at', { ascending: false }).limit(3)
       recentPosts.value = recent || []
   
-      // 4. İŞLETME KONTROLÜ (GÜNCELLENDİ: SADELEŞTİRİLDİ)
-      // Rol kontrolünü kaldırdık. Kullanıcı business_staff tablosunda var mı? Varsa göster.
-      const { data: staffRecord, error: staffError } = await supabase
-        .from('business_staff')
-        .select('id')
-        .eq('profile_id', userId)
-        .maybeSingle()
-      
-      if (staffError) console.error('Staff Check Error:', staffError)
-      
-      if (staffRecord) {
-        hasBusiness.value = true
-        console.log('Kullanıcı bir işletmede yetkili, butonlar aktif.')
-      }
+      // 4. İŞLETME KONTROLÜ
+      const { data: staffRecord } = await supabase.from('business_staff').select('id').eq('profile_id', userId).eq('role', 'owner').maybeSingle()
+      if (staffRecord) hasBusiness.value = true
   
       // 5. BAŞVURU KONTROLÜ
-      // Eğer işletme personeli değilse başvuru durumuna bak
       if (!staffRecord) {
           const { data: appRecord } = await supabase.from('business_applications').select('id').eq('user_id', userId).eq('status', 'pending').maybeSingle()
           if (appRecord) hasPendingApp.value = true
       }
   
     } catch (error) {
-      console.error('Genel Hata:', error)
+      console.error('Hata:', error)
     } finally {
       loading.value = false
     }
@@ -91,11 +79,6 @@
           <!-- Masaüstü İşletme Linki (Varsa) -->
           <RouterLink v-if="hasBusiness" to="/dashboard/business" class="flex items-center px-4 py-3 mt-4 text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold border border-gray-300 transition">
             <span class="mr-3">🏢</span> İşletmem
-          </RouterLink>
-  
-          <!-- Masaüstü Personel Linki (Varsa) - Ekstra Kolaylık Olsun Diye -->
-          <RouterLink v-if="hasBusiness" to="/dashboard/staff" class="flex items-center px-4 py-3 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg font-bold border border-blue-200 transition mt-2">
-            <span class="mr-3">👥</span> Ekip Yönetimi
           </RouterLink>
   
           <div class="border-t my-4"></div>
@@ -141,36 +124,22 @@
               <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                 <h3 class="font-bold text-gray-800 mb-4">Hızlı İşlemler</h3>
                 <div class="space-y-3">
-                  <RouterLink to="/create-post" class="block w-full text-center bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition shadow-sm flex items-center justify-center gap-2">
-                    <span>➕</span> Yeni İçerik Paylaş
-                  </RouterLink>
-                  <RouterLink to="/dashboard/settings" class="block w-full text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2">
-                    <span>✏️</span> Profili Düzenle
-                  </RouterLink>
+                  <RouterLink to="/create-post" class="block w-full text-center bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition shadow-sm">➕ Yeni İçerik Paylaş</RouterLink>
+                  <RouterLink to="/dashboard/settings" class="block w-full text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition">✏️ Profili Düzenle</RouterLink>
                   
-                  <!-- BAŞVURU VE İŞLETME BUTONLARI -->
-                  <div class="mt-4 pt-4 border-t border-gray-100 space-y-3">
-                    
-                    <template v-if="hasBusiness">
-                      <!-- Vitrin Yönetimi -->
-                      <RouterLink to="/dashboard/business" class="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-black transition shadow-sm border border-gray-900 flex items-center justify-center gap-2">
-                        <span>🏢</span> İşletmemi Yönet (Vitrin)
-                      </RouterLink>
-                      
-                      <!-- YENİ BUTON: PERSONEL YÖNETİMİ -->
-                      <RouterLink to="/dashboard/staff" class="block w-full text-center bg-blue-50 text-blue-700 border border-blue-200 py-3 rounded-lg font-medium hover:bg-blue-100 transition shadow-sm flex items-center justify-center gap-2">
-                        <span>👥</span> Ekip & Personel Yönetimi
-                      </RouterLink>
-                    </template>
-  
-                    <div v-else-if="hasPendingApp" class="block w-full text-center bg-yellow-50 text-yellow-800 py-3 rounded-lg font-medium border border-yellow-200 flex items-center justify-center gap-2">
-                      <span>⏳</span> Başvurunuz İnceleniyor
-                    </div>
-  
-                    <RouterLink v-else to="/apply-business" class="block w-full text-center bg-white border border-gray-900 text-gray-900 py-3 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm flex items-center justify-center gap-2">
-                      <span>💼</span> İşletme Başvurusu Yap
+                  <!-- BAŞVURU DURUMUNA GÖRE BUTON -->
+                  <div class="mt-4 pt-4 border-t border-gray-100">
+                    <RouterLink v-if="hasBusiness" to="/dashboard/business" class="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-black transition shadow-sm border border-gray-900">
+                      🏢 İşletmemi Yönet
                     </RouterLink>
   
+                    <div v-else-if="hasPendingApp" class="block w-full text-center bg-yellow-50 text-yellow-800 py-3 rounded-lg font-medium border border-yellow-200">
+                      ⏳ Başvurunuz İnceleniyor
+                    </div>
+  
+                    <RouterLink v-else to="/apply-business" class="block w-full text-center bg-white border border-gray-900 text-gray-900 py-3 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm">
+                      💼 İşletme Başvurusu Yap
+                    </RouterLink>
                   </div>
   
                 </div>
