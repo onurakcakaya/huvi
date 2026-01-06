@@ -122,6 +122,12 @@ const router = createRouter({
       name: 'business-profile', 
       component: () => import('../views/BusinessProfileView.vue') 
     },
+    {
+      path: '/dashboard/staff',
+      name: 'dashboard-staff',
+      component: () => import('../views/BusinessStaffView.vue'),
+      meta: { requiresAuth: true } // Varsa auth kontrolün
+    },
   ]
 })
 
