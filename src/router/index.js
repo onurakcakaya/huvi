@@ -125,9 +125,9 @@ const router = createRouter({
     {
       path: '/dashboard/staff',
       name: 'dashboard-staff',
-      component: () => import('../views/BusinessStaffView.vue'),
-      meta: { requiresAuth: true } // Varsa auth kontrolün
-    },
+      component: () => import('../views/BusinessStaffView.vue'), 
+      meta: { requiresAuth: true }
+    }
   ]
 })
 
