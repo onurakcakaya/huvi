@@ -1,177 +1,174 @@
 <script setup>
   import { onMounted, ref } from 'vue'
+  import { useRouter } from 'vue-router' // Router eklendi
   import { supabase } from '../supabase'
   import { useAuthStore } from '../stores/auth'
-  import { RouterLink } from 'vue-router'
+  import DefaultLayout from '../layouts/DefaultLayout.vue'
   
   const authStore = useAuthStore()
+  const router = useRouter() // Yönlendirmeler için
+  
   const loading = ref(true)
-  
-  // İstatistik Verileri
-  const stats = ref({
-    totalPosts: 0, totalLikes: 0, totalSaves: 0, totalComments: 0, followers: 0, following: 0
-  })
-  
-  const recentPosts = ref([]) 
-  
-  // İşletme Durumları
-  const hasBusiness = ref(false)
-  const hasPendingApp = ref(false)
+  const business = ref(null)
+  const userRole = ref(null) // 'owner' veya 'staff'
   
   const fetchDashboardData = async () => {
+    loading.value = true
     try {
-      loading.value = true
       const userId = authStore.user.id
   
-      // 1. Post İstatistikleri
-      const { data: postsData } = await supabase.from('posts').select('id, likes_count, saves_count, comments_count').eq('user_id', userId)
-      if (postsData) {
-        stats.value.totalPosts = postsData.length
-        stats.value.totalLikes = postsData.reduce((a, b) => a + (b.likes_count || 0), 0)
-        stats.value.totalSaves = postsData.reduce((a, b) => a + (b.saves_count || 0), 0)
-        stats.value.totalComments = postsData.reduce((a, b) => a + (b.comments_count || 0), 0)
+      // 1. ADIM: İŞLETME SAHİBİ Mİ? (Owner Kontrolü)
+      const { data: ownerData, error: ownerError } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('owner_id', userId)
+        .single()
+  
+      if (ownerData) {
+        business.value = ownerData
+        userRole.value = 'owner'
+        loading.value = false
+        return // Bulduk, çıkabiliriz
       }
   
-      // 2. Profil Verisi
-      const { data: profileData } = await supabase.from('profiles').select('followers_count, following_count').eq('id', userId).single()
-      if (profileData) {
-        stats.value.followers = profileData.followers_count || 0
-        stats.value.following = profileData.following_count || 0
-      }
+      // 2. ADIM: İŞLETME ÇALIŞANI MI? (Staff Kontrolü)
+      // Sütun adı düzeltildi: 'user_id' kullanıyoruz (profile_id değil)
+      const { data: staffData, error: staffError } = await supabase
+        .from('business_staff')
+        .select(`
+          role,
+          businesses (*) 
+        `)
+        .eq('user_id', userId) // <-- HATA BURADAYDI, DÜZELDİ
+        .single()
   
-      // 3. Son Postlar
-      const { data: recent } = await supabase.from('posts').select('id, title, created_at, likes_count').eq('user_id', userId).order('created_at', { ascending: false }).limit(3)
-      recentPosts.value = recent || []
-  
-      // 4. İŞLETME KONTROLÜ
-      const { data: staffRecord } = await supabase.from('business_staff').select('id').eq('profile_id', userId).eq('role', 'owner').maybeSingle()
-      if (staffRecord) hasBusiness.value = true
-  
-      // 5. BAŞVURU KONTROLÜ
-      if (!staffRecord) {
-          const { data: appRecord } = await supabase.from('business_applications').select('id').eq('user_id', userId).eq('status', 'pending').maybeSingle()
-          if (appRecord) hasPendingApp.value = true
+      if (staffData) {
+        business.value = staffData.businesses
+        userRole.value = staffData.role // 'staff' veya 'manager'
       }
   
     } catch (error) {
-      console.error('Hata:', error)
+      console.error('Veri çekme hatası:', error.message)
     } finally {
       loading.value = false
     }
   }
   
   onMounted(() => {
-    fetchDashboardData()
+    if (authStore.user) {
+      fetchDashboardData()
+    }
   })
   </script>
   
   <template>
-    <div class="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
-      
-      <!-- Sidebar -->
-      <aside class="w-64 bg-white border-r border-gray-200 hidden lg:block min-h-screen flex-shrink-0">
-        <div class="p-6"><h2 class="text-xl font-bold text-primary-600 flex items-center gap-2"><span>⚡</span> Panel</h2></div>
-        <nav class="mt-4 px-4 space-y-2">
-          <RouterLink to="/dashboard" active-class="bg-primary-50 text-primary-700" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition"><span class="mr-3">📊</span> Genel Bakış</RouterLink>
-          <RouterLink to="/dashboard/posts" active-class="bg-primary-50 text-primary-700" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition"><span class="mr-3">📝</span> Yayınlarım</RouterLink>
-          <RouterLink to="/dashboard/settings" active-class="bg-primary-50 text-primary-700" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition"><span class="mr-3">⚙️</span> Profil Ayarları</RouterLink>
-          
-          <!-- Masaüstü İşletme Linki (Varsa) -->
-          <RouterLink v-if="hasBusiness" to="/dashboard/business" class="flex items-center px-4 py-3 mt-4 text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg font-bold border border-gray-300 transition">
-            <span class="mr-3">🏢</span> İşletmem
-          </RouterLink>
-  
-          <div class="border-t my-4"></div>
-          <RouterLink to="/" class="flex items-center px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition"><span class="mr-3">🏠</span> Siteye Dön</RouterLink>
-        </nav>
-      </aside>
-  
-      <!-- Main Content -->
-      <main class="flex-1 p-4 sm:p-8 overflow-x-hidden">
-        <!-- Mobil Menü -->
-        <div class="lg:hidden mb-6 overflow-x-auto pb-2 scrollbar-hide">
-          <nav class="flex space-x-2">
-            <RouterLink to="/dashboard" active-class="bg-primary-600 text-white" class="whitespace-nowrap px-4 py-2 rounded-full border bg-white text-gray-700 font-medium shadow-sm">📊 Genel</RouterLink>
-            <RouterLink to="/dashboard/posts" active-class="bg-primary-600 text-white" class="whitespace-nowrap px-4 py-2 rounded-full border bg-white text-gray-700 font-medium shadow-sm">📝 Yayınlarım</RouterLink>
-            <RouterLink to="/dashboard/settings" active-class="bg-primary-600 text-white" class="whitespace-nowrap px-4 py-2 rounded-full border bg-white text-gray-700 font-medium shadow-sm">⚙️ Ayarlar</RouterLink>
-          </nav>
+    <DefaultLayout>
+      <div class="max-w-7xl mx-auto px-4 py-8">
+        
+        <!-- YÜKLENİYOR -->
+        <div v-if="loading" class="flex justify-center py-20">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
   
-        <!-- Başlık -->
-        <div class="mb-8">
-          <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Hoşgeldin, {{ authStore.profile?.full_name?.split(' ')[0] }}! 👋</h1>
-          <div class="flex items-center gap-2 mt-2">
-            <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium border border-green-200">{{ authStore.profile?.profession || 'Yayıncı' }}</span>
-          </div>
+        <!-- DURUM 1: İŞLETMESİ YOKSA (BAŞVURU EKRANI) -->
+        <div v-else-if="!business" class="text-center py-16 bg-white rounded-2xl shadow-sm border border-gray-100">
+          <div class="text-6xl mb-4">🚀</div>
+          <h1 class="text-3xl font-bold text-gray-900">İşletmenizi HUVI'ye Taşıyın</h1>
+          <p class="text-gray-500 mt-3 max-w-lg mx-auto">
+            Binlerce kullanıcıya ulaşmak, randevularınızı yönetmek ve vitrininizi oluşturmak için hemen başvurun.
+          </p>
+          <router-link 
+            to="/apply-business" 
+            class="mt-8 inline-block bg-gray-900 text-white px-8 py-3 rounded-lg font-bold hover:bg-black transition shadow-lg"
+          >
+            İşletme Oluştur
+          </router-link>
         </div>
   
-        <div v-if="loading" class="flex justify-center py-20"><div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div></div>
-  
+        <!-- DURUM 2: İŞLETME VARSA (DASHBOARD) -->
         <div v-else>
-          <!-- İstatistikler -->
-          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between"><p class="text-xs font-medium text-gray-500 uppercase">Takipçi</p><p class="text-2xl font-bold text-gray-800">{{ stats.followers }}</p></div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between"><p class="text-xs font-medium text-gray-500 uppercase">Takip</p><p class="text-2xl font-bold text-gray-800">{{ stats.following }}</p></div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between"><p class="text-xs font-medium text-gray-500 uppercase">İçerik</p><p class="text-2xl font-bold text-gray-800">{{ stats.totalPosts }}</p></div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between"><p class="text-xs font-medium text-gray-500 uppercase">Beğeni</p><p class="text-2xl font-bold text-gray-800">{{ stats.totalLikes }}</p></div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between"><p class="text-xs font-medium text-gray-500 uppercase">Kaydetme</p><p class="text-2xl font-bold text-gray-800">{{ stats.totalSaves }}</p></div>
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between"><p class="text-xs font-medium text-gray-500 uppercase">Yorumlar</p><p class="text-2xl font-bold text-gray-800">{{ stats.totalComments }}</p></div>
-          </div>
-  
-          <!-- Hızlı İşlemler -->
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1 space-y-6">
-              <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h3 class="font-bold text-gray-800 mb-4">Hızlı İşlemler</h3>
-                <div class="space-y-3">
-                  <RouterLink to="/create-post" class="block w-full text-center bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 transition shadow-sm">➕ Yeni İçerik Paylaş</RouterLink>
-                  <RouterLink to="/dashboard/settings" class="block w-full text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50 transition">✏️ Profili Düzenle</RouterLink>
-                  
-                  <!-- BAŞVURU DURUMUNA GÖRE BUTON -->
-                  <div class="mt-4 pt-4 border-t border-gray-100">
-                    <RouterLink v-if="hasBusiness" to="/dashboard/business" class="block w-full text-center bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-black transition shadow-sm border border-gray-900">
-                      🏢 İşletmemi Yönet
-                    </RouterLink>
-  
-                    <div v-else-if="hasPendingApp" class="block w-full text-center bg-yellow-50 text-yellow-800 py-3 rounded-lg font-medium border border-yellow-200">
-                      ⏳ Başvurunuz İnceleniyor
-                    </div>
-  
-                    <RouterLink v-else to="/apply-business" class="block w-full text-center bg-white border border-gray-900 text-gray-900 py-3 rounded-lg font-bold hover:bg-gray-50 transition shadow-sm">
-                      💼 İşletme Başvurusu Yap
-                    </RouterLink>
-                  </div>
-  
-                </div>
+          
+          <!-- Üst Bilgi Kartı -->
+          <div class="bg-gray-900 text-white rounded-2xl p-8 mb-8 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+              <div class="flex items-center gap-3">
+                <h1 class="text-3xl font-bold">{{ business.name }}</h1>
+                <span v-if="userRole === 'owner'" class="bg-primary-500 text-xs px-2 py-1 rounded font-bold uppercase tracking-wide">Yönetici</span>
+                <span v-else class="bg-blue-500 text-xs px-2 py-1 rounded font-bold uppercase tracking-wide">Personel</span>
               </div>
+              <p class="text-gray-400 mt-2">
+                {{ business.city }} • {{ userRole === 'owner' ? 'Tüm yetkilere sahipsiniz.' : 'Yetkili personel girişi yapıldı.' }}
+              </p>
             </div>
-  
-            <!-- Son Paylaşımlar -->
-            <div class="lg:col-span-2">
-              <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                  <h3 class="font-bold text-gray-800">Son Paylaşımlar</h3>
-                  <RouterLink to="/dashboard/posts" class="text-sm text-primary-600 font-medium hover:underline">Tümünü Gör</RouterLink>
-                </div>
-                <div class="overflow-x-auto">
-                  <div v-if="recentPosts.length === 0" class="p-8 text-center text-gray-400">Henüz veri yok.</div>
-                  <table v-else class="w-full text-left whitespace-nowrap">
-                    <thead class="bg-gray-50 text-xs uppercase text-gray-500">
-                      <tr><th class="px-6 py-3">Başlık</th><th class="px-6 py-3 text-center">Beğeni</th><th class="px-6 py-3 text-right">Tarih</th></tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                      <tr v-for="post in recentPosts" :key="post.id" class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 font-medium text-gray-800 truncate max-w-[150px]">{{ post.title }}</td>
-                        <td class="px-6 py-4 text-center"><span class="inline-flex items-center px-2 py-1 rounded bg-red-50 text-red-600 text-xs font-bold">{{ post.likes_count }}</span></td>
-                        <td class="px-6 py-4 text-right text-gray-500 text-sm">{{ new Date(post.created_at).toLocaleDateString('tr-TR') }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+            
+            <div class="flex gap-3">
+               <router-link 
+                :to="`/business/${business.slug}`" 
+                target="_blank"
+                class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition"
+              >
+                Vitrinimi Gör ↗
+              </router-link>
+              <router-link 
+                to="/settings/business" 
+                class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-lg font-bold transition shadow-lg shadow-primary-900/50"
+              >
+                Düzenle
+              </router-link>
             </div>
           </div>
+  
+          <!-- İstatistikler (Örnek) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+              <span class="text-gray-500 text-sm font-medium">Toplam Randevu</span>
+              <p class="text-3xl font-bold text-gray-900 mt-1">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+              <span class="text-gray-500 text-sm font-medium">Vitrin Görüntülenme</span>
+              <p class="text-3xl font-bold text-gray-900 mt-1">128</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+              <span class="text-gray-500 text-sm font-medium">Favoriye Ekleyenler</span>
+              <p class="text-3xl font-bold text-gray-900 mt-1">12</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+              <span class="text-gray-500 text-sm font-medium">Puan Ortalaması</span>
+              <p class="text-3xl font-bold text-gray-900 mt-1">5.0</p>
+            </div>
+          </div>
+  
+          <!-- YÖNETİM BUTONLARI -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            
+            <!-- Randevular -->
+            <button class="p-6 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group">
+              <span class="text-3xl mb-2 block group-hover:scale-110 transition duration-300">📅</span>
+              <span class="font-bold text-gray-900 block">Randevular</span>
+              <span class="text-xs text-gray-500">Takvimi yönet</span>
+            </button>
+  
+            <!-- Ekip Yönetimi (Sadece OWNER Girebilir) -->
+            <router-link 
+              v-if="userRole === 'owner'"
+              to="/my-staff"
+              class="p-6 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group"
+            >
+              <span class="text-3xl mb-2 block group-hover:scale-110 transition duration-300">👥</span>
+              <span class="font-bold text-gray-900 block">Ekip & Uzmanlar</span>
+              <span class="text-xs text-gray-500">Personel ekle/çıkar</span>
+            </router-link>
+  
+            <!-- Hizmetler (Yakında) -->
+             <button class="p-6 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group">
+              <span class="text-3xl mb-2 block group-hover:scale-110 transition duration-300">✂️</span>
+              <span class="font-bold text-gray-900 block">Hizmetler</span>
+              <span class="text-xs text-gray-500">Fiyat listesi</span>
+            </button>
+  
+          </div>
+  
         </div>
-      </main>
-    </div>
+      </div>
+    </DefaultLayout>
   </template>
