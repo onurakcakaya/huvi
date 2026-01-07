@@ -106,11 +106,11 @@
                   <!-- Sağ Taraf: Aksiyon Butonları (Responsive Grid) -->
                   <div class="flex flex-wrap gap-3 mt-2 w-full md:w-auto">
                     
-                    <!-- Telefon -->
-                    <a v-if="business.phone" :href="`tel:${business.phone}`" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-6 py-2.5 rounded-lg font-bold transition shadow-md shadow-primary-200">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                      Ara
-                    </a>
+                    <!-- WhatsApp -->
+<a v-if="business.phone" :href="`https://wa.me/${business.phone.replace(/\s+/g, '').replace('+', '')}`" target="_blank" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#25D366] text-white hover:bg-[#128C7E] px-5 py-2.5 rounded-lg font-bold transition shadow-md shadow-green-100">
+  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.592 2.654-.696c1.001.572 2.135.911 3.26.911h.001c3.181 0 5.767-2.586 5.768-5.766.001-3.18-2.585-5.769-5.765-5.769zM12 18.916c-1.189 0-2.352-.318-3.369-.92l-.241-.144-2.503.656.668-2.437-.156-.249c-.655-1.045-1.002-2.261-1.002-3.494 0-3.666 2.981-6.648 6.648-6.648 3.666 0 6.648 2.982 6.648 6.648 0 3.666-2.981 6.648-6.648 6.648z"/></svg>
+  WhatsApp
+</a>
     
                     <!-- Harita -->
                     <a v-if="business.maps_url" :href="business.maps_url" target="_blank" class="flex-1 md:flex-none flex items-center justify-center gap-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-primary-600 px-5 py-2.5 rounded-lg font-medium transition shadow-sm">
