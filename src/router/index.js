@@ -122,6 +122,12 @@ const router = createRouter({
       name: 'business-profile', 
       component: () => import('../views/BusinessProfileView.vue') 
     },
+    {
+      path: '/my-staff', // Veya /dashboard/staff
+      name: 'my-staff',
+      component: () => import('../views/BusinessStaffView.vue'),
+      meta: { requiresAuth: true } // Sadece giriş yapanlar
+    },
   ]
 })
 
