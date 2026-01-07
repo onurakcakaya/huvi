@@ -4,36 +4,38 @@
     
     const props = defineProps({
       isOpen: Boolean,
-      businessId: String
+      businessId: String // business_id yerine businessId (type hatası olmasın)
     })
     
     const emit = defineEmits(['close', 'refresh'])
     
-    const email = ref('')
+    const searchTerm = ref('')
     const loading = ref(false)
-    const searchResult = ref(null) // Bulunan kullanıcı
+    const searchResults = ref([]) // Birden fazla sonuç olabilir
     const message = ref('')
     
-    // 1. KULLANICI ARA
+    // 1. İSİMLE KULLANICI ARA
     const searchUser = async () => {
-      if (!email.value) return
+      if (searchTerm.value.length < 3) {
+        message.value = 'En az 3 harf giriniz.'
+        return
+      }
+      
       loading.value = true
       message.value = ''
-      searchResult.value = null
+      searchResults.value = []
     
       try {
-        // Yazdığımız RPC fonksiyonunu çağırıyoruz
-        const { data, error } = await supabase.rpc('find_user_by_email', {
-          email_input: email.value
+        const { data, error } = await supabase.rpc('search_profiles', {
+          search_term: searchTerm.value
         })
     
         if (error) throw error
     
         if (data && data.length > 0) {
-          searchResult.value = data[0]
-          message.value = 'Kullanıcı bulundu! 🎉'
+          searchResults.value = data
         } else {
-          message.value = 'Kullanıcı bulunamadı. Lütfen kayıtlı e-posta giriniz.'
+          message.value = 'Kullanıcı bulunamadı.'
         }
     
       } catch (error) {
@@ -44,19 +46,22 @@
       }
     }
     
-    // 2. İŞLETMEYE EKLE
-    const addStaff = async () => {
-      if (!searchResult.value) return
-      loading.value = true
+    // 2. SEÇİLEN KİŞİYİ EKLE
+    const addStaff = async (user) => {
+      if (!confirm(`${user.full_name} adlı kullanıcıyı eklemek istiyor musunuz?`)) return
     
+      loading.value = true
       try {
+        // businessId'yi bigint (sayı) olarak gönderiyoruz, string gelirse çeviriyoruz
+        const bId = parseInt(props.businessId)
+    
         const { error } = await supabase
           .from('business_staff')
           .insert({
-            business_id: props.businessId,
-            user_id: searchResult.value.id,
+            business_id: bId,
+            user_id: user.id,
             role: 'staff',
-            title: 'Uzman' // Varsayılan ünvan
+            title: user.profession || 'Uzman'
           })
     
         if (error) {
@@ -64,83 +69,80 @@
           throw error
         }
     
-        // Başarılı
-        emit('refresh') // Listeyi yenile
+        emit('refresh')
         closeModal()
         
       } catch (error) {
-        alert(error.message)
+        alert('Hata: ' + error.message)
       } finally {
         loading.value = false
       }
     }
     
     const closeModal = () => {
-      email.value = ''
-      searchResult.value = null
+      searchTerm.value = ''
+      searchResults.value = []
       message.value = ''
       emit('close')
     }
     </script>
     
     <template>
-      <div v-if="isOpen" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+      <div v-if="isOpen" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
           
-          <div class="bg-gray-900 text-white p-4 flex justify-between items-center">
-            <h3 class="font-bold">Yeni Uzman Ekle</h3>
-            <button @click="closeModal" class="text-gray-400 hover:text-white">✕</button>
+          <!-- Header -->
+          <div class="bg-gray-900 text-white p-5 flex justify-between items-center shrink-0">
+            <div>
+              <h3 class="font-bold text-lg">Yeni Uzman Ekle</h3>
+              <p class="text-gray-400 text-xs mt-1">İsim soyisim ile arama yapın.</p>
+            </div>
+            <button @click="closeModal" class="text-gray-400 hover:text-white text-2xl">&times;</button>
           </div>
     
-          <div class="p-6">
-            <p class="text-sm text-gray-500 mb-4">
-              Eklemek istediğiniz uzmanın sisteme kayıtlı e-posta adresini giriniz.
-            </p>
-    
-            <!-- Arama Alanı -->
-            <div class="flex gap-2">
+          <div class="p-6 overflow-y-auto">
+            
+            <!-- Arama Input -->
+            <div class="flex gap-2 mb-4">
               <input 
-                v-model="email" 
-                type="email" 
-                placeholder="ornek@mail.com" 
-                class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-primary-500 focus:border-primary-500"
+                v-model="searchTerm" 
+                type="text" 
+                placeholder="Örn: Ahmet Yılmaz" 
+                class="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:ring-primary-500 focus:border-primary-500"
                 @keyup.enter="searchUser"
               >
               <button 
                 @click="searchUser" 
                 :disabled="loading"
-                class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-bold hover:bg-gray-200"
+                class="bg-gray-100 text-gray-800 px-6 py-3 rounded-lg font-bold hover:bg-gray-200 transition"
               >
                 {{ loading ? '...' : 'Ara' }}
               </button>
             </div>
     
-            <!-- Mesaj -->
-            <p v-if="message" class="text-sm mt-3" :class="searchResult ? 'text-green-600' : 'text-red-500'">
-              {{ message }}
-            </p>
+            <!-- Hata Mesajı -->
+            <p v-if="message" class="text-center text-gray-500 text-sm py-4">{{ message }}</p>
     
-            <!-- Bulunan Kullanıcı Kartı -->
-            <div v-if="searchResult" class="mt-6 border border-primary-100 bg-primary-50 rounded-lg p-4 flex items-center gap-4">
-              <img 
-                :src="searchResult.avatar_url || 'https://via.placeholder.com/150'" 
-                class="w-12 h-12 rounded-full object-cover border border-white shadow-sm"
-              >
-              <div>
-                <h4 class="font-bold text-gray-900">{{ searchResult.full_name }}</h4>
-                <p class="text-xs text-gray-500">{{ searchResult.role === 'publisher' ? 'Yayıncı / Uzman' : 'Kullanıcı' }}</p>
+            <!-- Sonuç Listesi -->
+            <div v-if="searchResults.length > 0" class="space-y-3">
+              <div v-for="user in searchResults" :key="user.id" class="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition group">
+                
+                <div class="flex items-center gap-3">
+                  <img :src="user.avatar_url || 'https://via.placeholder.com/150'" class="w-10 h-10 rounded-full object-cover border border-gray-200">
+                  <div>
+                    <h4 class="font-bold text-gray-900 text-sm">{{ user.full_name }}</h4>
+                    <p class="text-xs text-gray-500">{{ user.profession || 'Kullanıcı' }}</p>
+                  </div>
+                </div>
+    
+                <button 
+                  @click="addStaff(user)"
+                  class="bg-primary-600 text-white px-3 py-1.5 rounded-md text-xs font-bold hover:bg-primary-700 shadow-sm"
+                >
+                  Seç +
+                </button>
               </div>
             </div>
-    
-            <!-- Ekle Butonu -->
-            <button 
-              v-if="searchResult" 
-              @click="addStaff"
-              :disabled="loading"
-              class="w-full mt-6 bg-primary-600 text-white py-3 rounded-lg font-bold hover:bg-primary-700 transition"
-            >
-              {{ loading ? 'Ekleniyor...' : 'Ekibe Ekle' }}
-            </button>
     
           </div>
         </div>
