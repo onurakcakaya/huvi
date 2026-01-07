@@ -134,6 +134,12 @@ const router = createRouter({
       component: () => import('../views/StaffDetailView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/my-services',
+      name: 'my-services',
+      component: () => import('../views/ServiceManagementView.vue'),
+      meta: { requiresAuth: true }
+    },
   ]
 })
 

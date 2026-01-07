@@ -134,6 +134,14 @@
                 <span class="text-2xl mb-2 block group-hover:scale-110 transition">📅</span>
                 <span class="font-bold text-gray-900 block text-sm">Randevular</span>
               </div>
+              <router-link 
+  v-if="userRole === 'owner'"
+  to="/my-services" 
+  class="p-5 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group"
+>
+  <span class="text-2xl mb-2 block group-hover:scale-110 transition">✂️</span>
+  <span class="font-bold text-gray-900 block text-sm">Hizmetler & Fiyatlar</span>
+</router-link>
             </div>
           </section>
   
