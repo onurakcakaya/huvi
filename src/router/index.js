@@ -128,6 +128,12 @@ const router = createRouter({
       component: () => import('../views/BusinessStaffView.vue'),
       meta: { requiresAuth: true } // Sadece giriş yapanlar
     },
+    {
+      path: '/my-staff/:id', // :id dinamik parametredir
+      name: 'staff-detail',
+      component: () => import('../views/StaffDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
   ]
 })
 
