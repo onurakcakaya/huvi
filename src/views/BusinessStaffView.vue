@@ -99,32 +99,49 @@
           </div>
     
           <!-- Liste -->
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div v-for="staff in staffList" :key="staff.id" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start gap-4">
-              
-              <!-- Avatar -->
-              <img 
-                :src="staff.profiles.avatar_url || 'https://via.placeholder.com/150'" 
-                class="w-14 h-14 rounded-full object-cover border border-gray-200"
-              >
-              
-              <!-- Bilgiler -->
-              <div class="flex-1">
-                <h4 class="font-bold text-gray-900">{{ staff.profiles.full_name }}</h4>
-                <p class="text-primary-600 text-sm font-medium">{{ staff.title || 'Uzman' }}</p>
-                <p class="text-gray-400 text-xs mt-1">{{ staff.profiles.contact_email }}</p>
-              </div>
+<div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  
+  <!-- 
+    DEĞİŞİKLİK BURADA: 
+    1. 'div' yerine 'router-link' kullandık.
+    2. :to="..." ile adresi verdik.
+    3. hover efektleri ekledik (border-primary-500).
+  -->
+  <router-link 
+    v-for="staff in staffList" 
+    :key="staff.id" 
+    :to="`/my-staff/${staff.id}`"
+    class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-start gap-4 hover:border-primary-500 hover:shadow-md transition cursor-pointer group relative"
+  >
     
-              <!-- Sil Butonu -->
-              <button 
-                @click="removeStaff(staff.id)" 
-                class="text-gray-300 hover:text-red-500 transition"
-                title="Ekipten Çıkar"
-              >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-              </button>
-            </div>
-          </div>
+    <!-- Avatar -->
+    <img 
+      :src="staff.profiles.avatar_url || 'https://via.placeholder.com/150'" 
+      class="w-14 h-14 rounded-full object-cover border border-gray-200 group-hover:border-primary-500 transition"
+    >
+    
+    <!-- Bilgiler -->
+    <div class="flex-1">
+      <h4 class="font-bold text-gray-900 group-hover:text-primary-600 transition">{{ staff.profiles.full_name }}</h4>
+      <p class="text-gray-500 text-sm font-medium">{{ staff.title || 'Uzman' }}</p>
+      <p class="text-gray-400 text-xs mt-1">{{ staff.profiles.contact_email }}</p>
+    </div>
+
+    <!-- 
+      SİL BUTONU (Kritik Nokta)
+      @click.prevent.stop kullanıyoruz ki kartın link özelliğini tetiklemesin!
+    -->
+    <button 
+      @click.prevent.stop="removeStaff(staff.id)" 
+      class="text-gray-300 hover:text-red-500 transition p-2 z-10"
+      title="Ekipten Çıkar"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+    </button>
+
+  </router-link>
+
+</div>
     
           <!-- Modal -->
           <AddStaffModal 
