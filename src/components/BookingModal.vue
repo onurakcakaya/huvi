@@ -5,8 +5,8 @@
     
     const props = defineProps({
       isOpen: Boolean,
-      service: Object, // Hangi hizmet seçildi?
-      staffList: Array, // O işletmenin personelleri
+      service: Object, // Hangi hizmet seçildi? (İçinde service_staff_link var)
+      staffList: Array, // O işletmenin TÜM personelleri
       businessId: Number
     })
     
@@ -31,6 +31,22 @@
       return new Date().toISOString().split('T')[0]
     })
     
+    // ==========================================
+    // YENİ EKLEME: PERSONEL FİLTRELEME 🧠
+    // ==========================================
+    const filteredStaffList = computed(() => {
+      // Veri güvenliği: Hizmet veya link tablosu yoksa boş dön
+      if (!props.service || !props.service.service_staff_link) {
+        return [] 
+      }
+    
+      // 1. Bu hizmete atanmış personellerin ID'lerini bir diziye çıkar
+      const allowedStaffIds = props.service.service_staff_link.map(link => link.staff_id)
+    
+      // 2. Ana personel listesini bu ID'lere göre filtrele
+      return props.staffList.filter(staff => allowedStaffIds.includes(staff.id))
+    })
+    
     // 1. ADIM: PERSONEL SEÇİNCE
     const selectStaff = (staff) => {
       selectedStaff.value = staff
@@ -46,7 +62,6 @@
       selectedSlot.value = null
     
       try {
-        // Yazdığımız RPC fonksiyonunu çağırıyoruz
         const { data, error } = await supabase.rpc('get_available_slots', {
           p_date: selectedDate.value,
           p_staff_id: selectedStaff.value.id,
@@ -55,10 +70,8 @@
     
         if (error) throw error
         
-        // Sadece müsait olanları (true) al
         availableSlots.value = data.filter(s => s.is_available)
         
-        // Eğer slot geldiyse adıma geçme, aynı ekranda göster
       } catch (error) {
         console.error('Slot hatası:', error)
         alert('Saatler çekilemedi.')
@@ -82,11 +95,6 @@
     
       loading.value = true
       try {
-        // Bitiş saatini hesapla
-        // time string (14:00:00) -> Date objesi -> dakika ekle -> string
-        // Basitlik olsun diye SQL tarafında trigger ile de hesaplatabilirdik ama burada yapalım
-        // Şimdilik sadece start_time gönderelim, backend trigger veya logic halletsin diyemiyoruz, SQL insert istiyor.
-        // JS ile basit saat toplama:
         const [hours, minutes] = selectedSlot.value.split(':').map(Number)
         const endDate = new Date()
         endDate.setHours(hours, minutes + props.service.duration)
@@ -95,14 +103,14 @@
         const { error } = await supabase
           .from('appointments')
           .insert({
-            customer_id: authStore.user.id, // Veya profile id
+            customer_id: authStore.user.id,
             business_id: props.businessId,
             staff_id: selectedStaff.value.id,
             service_id: props.service.id,
             appointment_date: selectedDate.value,
             start_time: selectedSlot.value,
             end_time: endTime,
-            status: 'pending', // KRİTİK NOKTA: BEKLEMEDE BAŞLAR
+            status: 'pending',
             customer_note: customerNote.value
           })
     
@@ -128,7 +136,6 @@
       emit('close')
     }
     
-    // Tarih değişince slotları yeniden çek
     watch(selectedDate, () => {
       if (selectedDate.value) fetchSlots()
     })
@@ -154,9 +161,15 @@
             <div v-if="step === 1">
               <h4 class="font-bold text-gray-900 mb-4">Hangi uzmandan hizmet almak istersiniz?</h4>
               
-              <div class="space-y-3">
+              <!-- Eğer personel atanmamışsa uyarı ver -->
+              <div v-if="filteredStaffList.length === 0" class="text-red-500 bg-red-50 p-4 rounded-lg text-sm border border-red-100">
+                ⚠️ Bu hizmet için atanmış uygun bir uzman bulunamadı. Lütfen işletme ile iletişime geçin.
+              </div>
+    
+              <div v-else class="space-y-3">
+                <!-- DÖNGÜ ARTIK FİLTRELİ LİSTEDE ÇALIŞIYOR -->
                 <div 
-                  v-for="staff in staffList" 
+                  v-for="staff in filteredStaffList" 
                   :key="staff.id"
                   @click="selectStaff(staff)"
                   class="flex items-center gap-4 p-4 border border-gray-200 rounded-xl cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition group"
@@ -178,7 +191,6 @@
                 <h4 class="font-bold text-gray-900">Tarih ve Saat Seçin</h4>
               </div>
     
-              <!-- Tarih Seçici -->
               <div class="mb-6">
                 <label class="block text-sm font-bold text-gray-700 mb-1">Tarih</label>
                 <input 
@@ -189,7 +201,6 @@
                 >
               </div>
     
-              <!-- Saatler -->
               <div v-if="loading" class="text-center py-4">
                 <div class="animate-spin h-6 w-6 border-b-2 border-primary-600 rounded-full mx-auto"></div>
                 <p class="text-xs text-gray-400 mt-2">Müsaitlik durumu kontrol ediliyor...</p>

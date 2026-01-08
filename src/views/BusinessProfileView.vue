@@ -38,15 +38,18 @@
       if (bError) throw bError
       business.value = bData
   
-      // 2. HİZMETLERİ ÇEK
-      const { data: sData } = await supabase
-        .from('business_services')
-        .select('*')
-        .eq('business_id', bData.id)
-        .eq('is_active', true)
-        .order('price', { ascending: true })
-      
-      if (sData) services.value = sData
+      // 2. HİZMETLERİ ÇEK (Personel bağlantılarıyla birlikte!)
+const { data: sData } = await supabase
+  .from('business_services')
+  .select(`
+    *,
+    service_staff_link ( staff_id )
+  `)
+  .eq('business_id', bData.id)
+  .eq('is_active', true)
+  .order('price', { ascending: true })
+
+if (sData) services.value = sData
   
       // 3. PERSONELİ ÇEK
       const { data: stData } = await supabase
