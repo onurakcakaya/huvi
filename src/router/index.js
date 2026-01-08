@@ -69,10 +69,10 @@ const router = createRouter({
         meta: { requiresAuth: true }
       },
       {
-        path: '/dashboard/posts',
+        path: '/my-posts',
         name: 'my-posts',
         component: () => import('../views/MyPostsView.vue'),
-        meta: { requiresAuth: true, requiresRole: true } // Sadece Yayıncılar
+        meta: { requiresAuth: true }
       },
       {
         path: '/edit-post/:id', // Dinamik ID
