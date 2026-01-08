@@ -174,10 +174,11 @@
               <!-- HER İKİSİ DE GÖRÜR (Randevu Yönetimi) -->
               <!-- Şimdilik "Yakında" yazıyor ama birazdan burayı yapacağız -->
               <li>
-                 <a href="#" class="flex items-center px-4 py-3 text-gray-400 cursor-not-allowed rounded-lg">
-                  <span class="mr-3 text-xl">📅</span> Gelen Randevular <span class="ml-2 text-[10px] bg-gray-200 px-1 rounded">Yakında</span>
-                </a>
-              </li>
+  <RouterLink to="/business/appointments" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-green-50 hover:text-green-700 transition">
+    <span class="mr-3 text-xl">📅</span> Randevu Yönetimi
+    <!-- Eğer bekleyen varsa kırmızı nokta koyabiliriz (V2) -->
+  </RouterLink>
+</li>
   
             </template>
   

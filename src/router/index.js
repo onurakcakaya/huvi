@@ -146,6 +146,12 @@ const router = createRouter({
       component: () => import('../views/MyAppointmentsView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/business/appointments',
+      name: 'business-appointments',
+      component: () => import('../views/BusinessAppointmentsView.vue'),
+      meta: { requiresAuth: true }
+    },
   ]
 })
 
