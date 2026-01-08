@@ -100,8 +100,7 @@
                 <RouterLink to="/liked" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition">
                   <span class="mr-3 text-xl">❤️</span> Beğendiklerim
                 </RouterLink>
-              </li>
-              <li>
+              </li><li>
   <RouterLink to="/my-appointments" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition">
     <span class="mr-3 text-xl">📅</span> Randevularım
   </RouterLink>
