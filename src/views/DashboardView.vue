@@ -44,11 +44,9 @@
       // ---------------------------------------------
       // 2. YAYINCI YETKİSİ KONTROLÜ
       // ---------------------------------------------
-      // Sadece rolü 'publisher' olanlar veya hali hazırda postu olanlar görebilir
       if (authStore.profile?.role === 'publisher') {
         showPublisherSection.value = true
         
-        // İstatistik Çek
         const { data: posts } = await supabase.from('posts').select('likes_count, saves_count').eq('user_id', userId)
         if (posts) {
           publisherStats.value = {
@@ -63,7 +61,6 @@
       // 3. YETKİ YOKSA -> ŞUTLA 🚫
       // ---------------------------------------------
       if (!showBusinessSection.value && !showPublisherSection.value) {
-        // Adamın ne işletmesi var ne de yayıncı. Dashboard'da işi yok.
         router.replace('/') 
       }
   
@@ -95,21 +92,22 @@
         <div v-else class="space-y-12">
   
           <!-- ================================================= -->
-          <!-- İŞLETME BÖLÜMÜ (Sadece yetki varsa render olur) -->
+          <!-- BÖLÜM 1: YÖNETİM PANELİ (İşletme) -->
           <!-- ================================================= -->
           <section v-if="showBusinessSection" class="animate-fade-in">
             <div class="flex items-center gap-3 mb-6">
               <span class="text-3xl">💼</span>
               <div>
-                <h2 class="text-2xl font-bold text-gray-900">İşletme Paneli</h2>
-                <p class="text-gray-500 text-sm">Randevu ve ekip yönetimi.</p>
+                <!-- BAŞLIK GÜNCELLENDİ -->
+                <h2 class="text-2xl font-bold text-gray-900">Yönetim Paneli</h2>
+                <p class="text-gray-500 text-sm">İşletmenizin kontrol merkezi.</p>
               </div>
             </div>
   
             <!-- İşletme Kartı -->
             <div class="bg-gray-900 text-white rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-center gap-6">
-              <div class="w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center shrink-0 border border-white/20">
-                <img v-if="business?.logo_url" :src="business.logo_url" class="w-full h-full object-cover rounded-lg">
+              <div class="w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center shrink-0 border border-white/20 overflow-hidden">
+                <img v-if="business?.logo_url" :src="business.logo_url" class="w-full h-full object-cover">
                 <span v-else class="text-2xl">🏢</span>
               </div>
               <div class="flex-1 text-center md:text-left">
@@ -124,29 +122,53 @@
               </div>
             </div>
   
-            <!-- Araçlar -->
+            <!-- Araçlar Menüsü (Grid) -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-               <router-link v-if="userRole === 'owner'" to="/my-staff" class="p-5 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group">
+              
+              <!-- 1. RANDEVULAR (Herkes Görür) -->
+              <router-link 
+                to="/business/appointments" 
+                class="p-5 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group"
+              >
+                <span class="text-2xl mb-2 block group-hover:scale-110 transition">📅</span>
+                <span class="font-bold text-gray-900 block text-sm">Randevular</span>
+              </router-link>
+  
+              <!-- 2. EKİP (Sadece Owner) -->
+              <router-link 
+                v-if="userRole === 'owner'" 
+                to="/my-staff" 
+                class="p-5 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group"
+              >
                 <span class="text-2xl mb-2 block group-hover:scale-110 transition">👥</span>
                 <span class="font-bold text-gray-900 block text-sm">Ekip & Uzmanlar</span>
               </router-link>
-               <div class="p-5 bg-white border border-gray-200 rounded-xl hover:border-primary-500 transition text-left group cursor-pointer">
-                <span class="text-2xl mb-2 block group-hover:scale-110 transition">📅</span>
-                <span class="font-bold text-gray-900 block text-sm">Randevular</span>
-              </div>
+              
+              <!-- 3. HİZMETLER (Sadece Owner) -->
               <router-link 
-  v-if="userRole === 'owner'"
-  to="/my-services" 
-  class="p-5 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group"
->
-  <span class="text-2xl mb-2 block group-hover:scale-110 transition">✂️</span>
-  <span class="font-bold text-gray-900 block text-sm">Hizmetler & Fiyatlar</span>
-</router-link>
+                v-if="userRole === 'owner'"
+                to="/my-services" 
+                class="p-5 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group"
+              >
+                <span class="text-2xl mb-2 block group-hover:scale-110 transition">✂️</span>
+                <span class="font-bold text-gray-900 block text-sm">Hizmetler & Fiyatlar</span>
+              </router-link>
+  
+              <!-- 4. RAPORLAR (Sadece Owner) - YENİ EKLENDİ -->
+              <router-link 
+                v-if="userRole === 'owner'"
+                to="/business/reports" 
+                class="p-5 bg-white border border-gray-200 rounded-xl hover:border-primary-500 hover:shadow-md transition text-left group"
+              >
+                <span class="text-2xl mb-2 block group-hover:scale-110 transition">📈</span>
+                <span class="font-bold text-gray-900 block text-sm">Kasa & Raporlar</span>
+              </router-link>
+  
             </div>
           </section>
   
           <!-- ================================================= -->
-          <!-- YAYINCI BÖLÜMÜ (Sadece yetki varsa render olur) -->
+          <!-- BÖLÜM 2: İÇERİK STÜDYOSU (Yayıncı) -->
           <!-- ================================================= -->
           <section v-if="showPublisherSection" class="animate-fade-in">
             <div class="flex items-center justify-between mb-6">
