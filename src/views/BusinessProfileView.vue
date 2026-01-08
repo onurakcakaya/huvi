@@ -1,14 +1,25 @@
 <script setup>
-  import { onMounted, ref, computed } from 'vue'
+  import { onMounted, ref } from 'vue'
   import { useRoute } from 'vue-router'
   import { supabase } from '../supabase'
   import DefaultLayout from '../layouts/DefaultLayout.vue'
+  import BookingModal from '../components/BookingModal.vue' // Modal import edildi
   
   const route = useRoute()
   const business = ref(null)
   const services = ref([])
   const staffList = ref([])
   const loading = ref(true)
+  
+  // Randevu Modal State'leri
+  const isBookingModalOpen = ref(false)
+  const selectedServiceForBooking = ref(null)
+  
+  // Modalı Açan Fonksiyon
+  const openBooking = (service) => {
+    selectedServiceForBooking.value = service
+    isBookingModalOpen.value = true
+  }
   
   // Sekme Yönetimi
   const activeTab = ref('services') // 'services', 'staff', 'products', 'reviews'
@@ -27,7 +38,7 @@
       if (bError) throw bError
       business.value = bData
   
-      // 2. HİZMETLERİ ÇEK (Sadece aktif olanlar)
+      // 2. HİZMETLERİ ÇEK
       const { data: sData } = await supabase
         .from('business_services')
         .select('*')
@@ -37,7 +48,7 @@
       
       if (sData) services.value = sData
   
-      // 3. PERSONELİ ÇEK (Profil bilgileriyle birlikte)
+      // 3. PERSONELİ ÇEK
       const { data: stData } = await supabase
         .from('business_staff')
         .select(`
@@ -82,7 +93,7 @@
       <!-- VİTRİN İÇERİĞİ -->
       <div v-else class="pb-24">
         
-        <!-- HERO & HEADER (Aynı kaldı) -->
+        <!-- HERO & HEADER -->
         <div class="relative h-64 md:h-96 w-full bg-gray-200 overflow-hidden group">
           <img v-if="business.cover_url" :src="business.cover_url" class="w-full h-full object-cover transition duration-700 group-hover:scale-105">
           <div v-else class="w-full h-full bg-gradient-to-r from-gray-800 to-gray-900 flex items-center justify-center">
@@ -143,7 +154,6 @@
               >
                 Uzman Kadromuz
               </button>
-              <!-- Gelecek özellikler için pasif butonlar -->
               <button class="border-transparent text-gray-400 px-2 pb-4 font-medium text-sm cursor-not-allowed">Ürünler (Yakında)</button>
               <button class="border-transparent text-gray-400 px-2 pb-4 font-medium text-sm cursor-not-allowed">Yorumlar (Yakında)</button>
             </nav>
@@ -163,8 +173,13 @@
                 </div>
                 <div class="text-right">
                   <span class="block text-lg font-bold text-gray-900">₺{{ service.price }}</span>
-                  <!-- Randevu Butonu (Şimdilik işlevsiz, V2'de aktif olacak) -->
-                  <button class="mt-2 text-xs bg-gray-900 text-white px-3 py-1.5 rounded-md font-bold hover:bg-primary-600 transition">
+                  <!-- 
+                    GÜNCELLEME: BUTONA TIKLAMA OLAYI EKLENDİ 
+                  -->
+                  <button 
+                    @click="openBooking(service)"
+                    class="mt-2 text-xs bg-gray-900 text-white px-3 py-1.5 rounded-md font-bold hover:bg-primary-600 transition"
+                  >
                     Randevu Al
                   </button>
                 </div>
@@ -179,10 +194,6 @@
             </div>
   
             <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              <!-- 
-                DİNAMİK COMPONENT KULLANIMI:
-                Eğer publisher ise 'router-link', değilse 'div' olur.
-              -->
               <component 
                 :is="isPublisher(staff) ? 'router-link' : 'div'"
                 v-for="staff in staffList" 
@@ -191,24 +202,19 @@
                 class="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition group relative"
                 :class="isPublisher(staff) ? 'cursor-pointer hover:border-primary-300' : 'cursor-default'"
               >
-                <!-- Avatar -->
                 <div class="aspect-square bg-gray-100 relative">
                   <img 
                     :src="staff.profiles.avatar_url || 'https://via.placeholder.com/300'" 
                     class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                   >
-                  <!-- Publisher Rozeti -->
                   <div v-if="isPublisher(staff)" class="absolute top-2 right-2 bg-white/90 backdrop-blur text-primary-600 text-xs font-bold px-2 py-1 rounded-lg shadow-sm">
                     Yayıncı ✨
                   </div>
                 </div>
-                
-                <!-- Bilgiler -->
                 <div class="p-4 text-center">
                   <h3 class="font-bold text-gray-900">{{ staff.profiles.full_name }}</h3>
                   <p class="text-primary-600 text-sm font-medium mb-2">{{ staff.title || staff.profiles.profession }}</p>
                   
-                  <!-- Link Uyarısı (Sadece Publisher ise görünür) -->
                   <span v-if="isPublisher(staff)" class="text-xs text-gray-400 group-hover:text-primary-500 transition flex items-center justify-center gap-1">
                     Profili İncele <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                   </span>
@@ -218,6 +224,18 @@
           </div>
   
         </div>
+  
+        <!-- 
+          GÜNCELLEME: MODAL BİLEŞENİ EKLENDİ
+          Bu bileşen olmadan pencere açılmaz!
+        -->
+        <BookingModal 
+          :isOpen="isBookingModalOpen"
+          :service="selectedServiceForBooking"
+          :staffList="staffList"
+          :businessId="business?.id"
+          @close="isBookingModalOpen = false"
+        />
   
       </div>
     </DefaultLayout>
