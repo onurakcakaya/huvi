@@ -152,6 +152,12 @@ const router = createRouter({
       component: () => import('../views/BusinessAppointmentsView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/business/reports',
+      name: 'business-reports',
+      component: () => import('../views/BusinessReportsView.vue'),
+      meta: { requiresAuth: true }
+    },
   ]
 })
 
