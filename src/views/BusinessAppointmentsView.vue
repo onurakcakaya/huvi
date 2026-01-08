@@ -3,14 +3,16 @@
     import { supabase } from '../supabase'
     import { useAuthStore } from '../stores/auth'
     import DefaultLayout from '../layouts/DefaultLayout.vue'
+    import AppointmentCalendar from '../components/AppointmentCalendar.vue' // BİLEŞENİ ÇAĞIRDIK
     
     const authStore = useAuthStore()
     const loading = ref(true)
     const appointments = ref([])
-    const activeTab = ref('pending') // 'pending', 'approved', 'history'
-    const filterMyStaffOnly = ref(false) // "Sadece Bana Atananlar" filtresi
+    const activeTab = ref('pending') 
+    const filterMyStaffOnly = ref(false)
+    const selectedDateFilter = ref(null) // Takvimden gelen veri burada tutulacak
     
-    // İstatistikler (Badge sayıları için)
+    // İstatistikler
     const stats = computed(() => {
       return {
         pending: appointments.value.filter(a => a.status === 'pending').length,
@@ -18,22 +20,21 @@
       }
     })
     
+    // Takvimden Gelen Filtreleme İsteği
+    const handleCalendarFilter = (date) => {
+      selectedDateFilter.value = date
+    }
+    
     // VERİLERİ ÇEK
     const fetchBusinessAppointments = async () => {
       loading.value = true
       try {
         const userId = authStore.user.id
-    
-        // 1. Önce kullanıcının İşletme ID'sini bulalım
-        // (Owner veya Staff olabilir, her iki tablodan da business_id yakalamalıyız)
-        
         let businessId = null
         
-        // A. Owner mı?
         const { data: ownerData } = await supabase.from('businesses').select('id').eq('owner_id', userId).maybeSingle()
         if (ownerData) businessId = ownerData.id
         
-        // B. Staff mı?
         if (!businessId) {
           const { data: staffData } = await supabase.from('business_staff').select('business_id').eq('user_id', userId).maybeSingle()
           if (staffData) businessId = staffData.business_id
@@ -41,22 +42,16 @@
     
         if (!businessId) throw new Error('İşletme yetkisi bulunamadı.')
     
-        // 2. O işletmeye ait TÜM randevuları çek
         const { data, error } = await supabase
           .from('appointments')
           .select(`
             *,
             profiles:customer_id ( full_name, avatar_url, contact_email ),
             business_services ( name, price, duration ),
-            business_staff ( 
-              id,
-              user_id,
-              title, 
-              profiles ( full_name ) 
-            )
+            business_staff ( id, user_id, title, profiles ( full_name ) )
           `)
           .eq('business_id', businessId)
-          .order('appointment_date', { ascending: true }) // En yakın tarih en üstte
+          .order('appointment_date', { ascending: true })
           .order('start_time', { ascending: true })
     
         if (error) throw error
@@ -69,21 +64,25 @@
       }
     }
     
-    // LİSTEYİ FİLTRELEME (Tab + Personel Filtresi)
+    // LİSTEYİ FİLTRELEME
     const filteredAppointments = computed(() => {
       let list = appointments.value
     
-      // 1. Durum Filtresi (Sekmeler)
+      // 1. Tarih Filtresi (Takvimden geldiyse)
+      if (selectedDateFilter.value) {
+        list = list.filter(a => a.appointment_date === selectedDateFilter.value)
+      }
+    
+      // 2. Durum Filtresi (Sekmeler)
       if (activeTab.value === 'pending') {
         list = list.filter(a => a.status === 'pending')
       } else if (activeTab.value === 'approved') {
         list = list.filter(a => a.status === 'approved')
       } else {
-        // Geçmiş (Completed, Rejected, Cancelled)
         list = list.filter(a => ['completed', 'rejected', 'cancelled'].includes(a.status))
       }
     
-      // 2. "Sadece Benimkiler" Filtresi
+      // 3. Personel Filtresi
       if (filterMyStaffOnly.value) {
         list = list.filter(a => a.business_staff.user_id === authStore.user.id)
       }
@@ -91,35 +90,20 @@
       return list
     })
     
-    // DURUM GÜNCELLEME (Onayla / Reddet / Tamamla)
     const updateStatus = async (id, newStatus) => {
-      // Kullanıcıya soralım (özellikle Red için)
       if (newStatus === 'rejected' && !confirm('Randevuyu reddetmek istediğinize emin misiniz?')) return
       if (newStatus === 'completed' && !confirm('Hizmet tamamlandı olarak işaretlensin mi?')) return
     
       try {
-        const { error } = await supabase
-          .from('appointments')
-          .update({ status: newStatus })
-          .eq('id', id)
-    
+        const { error } = await supabase.from('appointments').update({ status: newStatus }).eq('id', id)
         if (error) throw error
-    
-        // Yerel listeyi güncelle
         const index = appointments.value.findIndex(a => a.id === id)
-        if (index !== -1) {
-          appointments.value[index].status = newStatus
-        }
-    
-        // Ufak bir başarı bildirimi (opsiyonel)
-        // alert('Durum güncellendi!') 
-    
+        if (index !== -1) appointments.value[index].status = newStatus
       } catch (error) {
         alert('Hata: ' + error.message)
       }
     }
     
-    // Tarih Formatlayıcı
     const formatDate = (dateString) => {
       const options = { weekday: 'short', month: 'long', day: 'numeric' }
       return new Date(dateString).toLocaleDateString('tr-TR', options)
@@ -143,8 +127,7 @@
               <p class="text-gray-500 mt-1">Gelen talepleri yönetin ve takviminizi planlayın.</p>
             </div>
     
-            <!-- Personel Filtresi (Toggle) -->
-            <label class="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm cursor-pointer hover:border-gray-300">
+            <label class="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-lg shadow-sm cursor-pointer hover:border-gray-300 select-none">
               <span class="text-sm font-bold text-gray-700">Sadece Bana Atananlar</span>
               <div class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" v-model="filterMyStaffOnly" class="sr-only peer">
@@ -160,11 +143,18 @@
     
           <div v-else>
             
+            <!-- YENİ BİLEŞEN: TAKVİM -->
+            <!-- randevuları gönderiyoruz, filtreleme emrini dinliyoruz -->
+            <AppointmentCalendar 
+              :appointments="appointments" 
+              @filter="handleCalendarFilter"
+            />
+    
             <!-- Sekmeler (Tabs) -->
-            <div class="flex gap-2 p-1 bg-gray-100 rounded-xl mb-6 w-full md:w-fit">
+            <div class="flex gap-2 p-1 bg-gray-100 rounded-xl mb-6 w-full md:w-fit overflow-x-auto">
               <button 
                 @click="activeTab = 'pending'"
-                class="px-6 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2"
+                class="px-6 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 whitespace-nowrap"
                 :class="activeTab === 'pending' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'"
               >
                 Bekleyenler
@@ -173,16 +163,16 @@
               
               <button 
                 @click="activeTab = 'approved'"
-                class="px-6 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2"
+                class="px-6 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 whitespace-nowrap"
                 :class="activeTab === 'approved' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'"
               >
-                Onaylananlar (Takvim)
+                Onaylananlar
                 <span v-if="stats.approved > 0" class="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">{{ stats.approved }}</span>
               </button>
     
               <button 
                 @click="activeTab = 'history'"
-                class="px-6 py-2 rounded-lg text-sm font-bold transition"
+                class="px-6 py-2 rounded-lg text-sm font-bold transition whitespace-nowrap"
                 :class="activeTab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'"
               >
                 Geçmiş
@@ -192,24 +182,21 @@
             <!-- BOŞ DURUM -->
             <div v-if="filteredAppointments.length === 0" class="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
               <p class="text-5xl mb-4">📭</p>
-              <p class="text-gray-500 font-medium">Bu kategoride randevu bulunmuyor.</p>
+              <p class="text-gray-500 font-medium">Bu kriterlere uygun randevu bulunmuyor.</p>
+              <button v-if="selectedDateFilter" @click="selectedDateFilter = null" class="mt-2 text-primary-600 font-bold hover:underline">Tümünü Göster</button>
             </div>
     
             <!-- LİSTE -->
             <div v-else class="grid grid-cols-1 gap-4">
-              
               <div 
                 v-for="app in filteredAppointments" 
                 :key="app.id"
                 class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                 :class="{'border-l-4 border-l-yellow-400': app.status === 'pending', 'border-l-4 border-l-green-500': app.status === 'approved'}"
               >
-                
-                <!-- SOL: Müşteri ve Hizmet Bilgisi -->
-                <div class="flex items-center gap-4">
-                  <!-- Müşteri Avatar -->
+                <!-- (Liste İçeriği Aynı Kaldı) -->
+                 <div class="flex items-center gap-4">
                   <img :src="app.profiles?.avatar_url || 'https://via.placeholder.com/150'" class="w-14 h-14 rounded-full object-cover border border-gray-100">
-                  
                   <div>
                     <h3 class="font-bold text-gray-900 text-lg">{{ app.profiles?.full_name }}</h3>
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500 mt-0.5">
@@ -219,14 +206,12 @@
                       <span>•</span>
                       <span>₺{{ app.business_services?.price }}</span>
                     </div>
-                    <!-- Not varsa göster -->
                     <p v-if="app.customer_note" class="text-xs text-gray-400 italic mt-1 bg-gray-50 inline-block px-2 py-1 rounded">
                       "{{ app.customer_note }}"
                     </p>
                   </div>
                 </div>
     
-                <!-- ORTA: Zaman ve Uzman -->
                 <div class="flex flex-col md:items-end gap-1 text-gray-700">
                   <div class="flex items-center gap-2">
                     <span class="text-xl">🗓️</span>
@@ -241,52 +226,27 @@
                   </div>
                 </div>
     
-                <!-- SAĞ: Aksiyon Butonları -->
                 <div class="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-100">
-                  
-                  <!-- BEKLEYEN İÇİN -->
                   <template v-if="app.status === 'pending'">
-                    <button 
-                      @click="updateStatus(app.id, 'rejected')"
-                      class="flex-1 md:flex-none px-4 py-2 border border-red-200 text-red-600 rounded-lg font-bold hover:bg-red-50 transition text-sm"
-                    >
-                      Reddet
-                    </button>
-                    <button 
-                      @click="updateStatus(app.id, 'approved')"
-                      class="flex-1 md:flex-none px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-200 text-sm"
-                    >
-                      Onayla ✅
-                    </button>
+                    <button @click="updateStatus(app.id, 'rejected')" class="flex-1 md:flex-none px-4 py-2 border border-red-200 text-red-600 rounded-lg font-bold hover:bg-red-50 transition text-sm">Reddet</button>
+                    <button @click="updateStatus(app.id, 'approved')" class="flex-1 md:flex-none px-6 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-200 text-sm">Onayla ✅</button>
                   </template>
     
-                  <!-- ONAYLANAN İÇİN -->
                   <template v-if="app.status === 'approved'">
-                    <button 
-                      @click="updateStatus(app.id, 'cancelled')"
-                      class="flex-1 md:flex-none px-4 py-2 text-gray-400 hover:text-red-500 text-xs font-medium"
-                    >
-                      İptal Et
-                    </button>
-                    <button 
-                      @click="updateStatus(app.id, 'completed')"
-                      class="flex-1 md:flex-none px-5 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition text-sm flex items-center gap-2"
-                    >
+                    <button @click="updateStatus(app.id, 'cancelled')" class="flex-1 md:flex-none px-4 py-2 text-gray-400 hover:text-red-500 text-xs font-medium">İptal Et</button>
+                    <button @click="updateStatus(app.id, 'completed')" class="flex-1 md:flex-none px-5 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition text-sm flex items-center gap-2">
                       <span>Tamamla</span>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                     </button>
                   </template>
     
-                  <!-- GEÇMİŞ İÇİN -->
                   <span v-if="['completed'].includes(app.status)" class="text-green-600 font-bold text-sm flex items-center gap-1">
                     Tamamlandı <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                   </span>
                   <span v-if="['rejected', 'cancelled'].includes(app.status)" class="text-gray-400 font-medium text-sm">
                     {{ app.status === 'rejected' ? 'Reddedildi' : 'İptal Edildi' }}
                   </span>
-    
                 </div>
-    
               </div>
             </div>
     
