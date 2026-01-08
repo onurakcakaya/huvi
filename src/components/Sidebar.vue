@@ -101,6 +101,11 @@
                   <span class="mr-3 text-xl">❤️</span> Beğendiklerim
                 </RouterLink>
               </li>
+              <li>
+  <RouterLink to="/my-appointments" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition">
+    <span class="mr-3 text-xl">📅</span> Randevularım
+  </RouterLink>
+</li>
             </template>
   
             <li class="border-t border-gray-200 my-3"></li>
