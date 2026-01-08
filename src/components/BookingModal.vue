@@ -31,26 +31,19 @@
       return new Date().toISOString().split('T')[0]
     })
     
-    // ==========================================
-    // YENİ EKLEME: PERSONEL FİLTRELEME 🧠
-    // ==========================================
+    // PERSONEL FİLTRELEME
     const filteredStaffList = computed(() => {
-      // Veri güvenliği: Hizmet veya link tablosu yoksa boş dön
       if (!props.service || !props.service.service_staff_link) {
         return [] 
       }
-    
-      // 1. Bu hizmete atanmış personellerin ID'lerini bir diziye çıkar
       const allowedStaffIds = props.service.service_staff_link.map(link => link.staff_id)
-    
-      // 2. Ana personel listesini bu ID'lere göre filtrele
       return props.staffList.filter(staff => allowedStaffIds.includes(staff.id))
     })
     
     // 1. ADIM: PERSONEL SEÇİNCE
     const selectStaff = (staff) => {
       selectedStaff.value = staff
-      step.value = 2 // Tarih seçimine geç
+      step.value = 2 
     }
     
     // 2. ADIM: TARİH SEÇİNCE SAATLERİ GETİR
@@ -83,7 +76,7 @@
     // 3. ADIM: SAAT SEÇME
     const selectSlot = (time) => {
       selectedSlot.value = time
-      step.value = 3 // Onay ekranına geç
+      step.value = 3 
     }
     
     // 4. SON ADIM: RANDEVUYU OLUŞTUR
@@ -161,13 +154,11 @@
             <div v-if="step === 1">
               <h4 class="font-bold text-gray-900 mb-4">Hangi uzmandan hizmet almak istersiniz?</h4>
               
-              <!-- Eğer personel atanmamışsa uyarı ver -->
               <div v-if="filteredStaffList.length === 0" class="text-red-500 bg-red-50 p-4 rounded-lg text-sm border border-red-100">
                 ⚠️ Bu hizmet için atanmış uygun bir uzman bulunamadı. Lütfen işletme ile iletişime geçin.
               </div>
     
               <div v-else class="space-y-3">
-                <!-- DÖNGÜ ARTIK FİLTRELİ LİSTEDE ÇALIŞIYOR -->
                 <div 
                   v-for="staff in filteredStaffList" 
                   :key="staff.id"
@@ -193,12 +184,7 @@
     
               <div class="mb-6">
                 <label class="block text-sm font-bold text-gray-700 mb-1">Tarih</label>
-                <input 
-                  v-model="selectedDate" 
-                  type="date" 
-                  :min="minDate"
-                  class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-primary-500"
-                >
+                <input v-model="selectedDate" type="date" :min="minDate" class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-primary-500">
               </div>
     
               <div v-if="loading" class="text-center py-4">
@@ -255,6 +241,12 @@
                   <span class="text-gray-500">Ücret:</span>
                   <span class="font-bold text-primary-600 text-lg">₺{{ service.price }}</span>
                 </div>
+              </div>
+    
+              <!-- YENİ EKLENEN BİLGİ NOTU -->
+              <div class="bg-blue-50 text-blue-700 p-3 rounded-lg text-xs flex items-start gap-2 mb-4 border border-blue-100">
+                <span class="text-lg">💡</span>
+                <span>Ödemenizi randevu saatinde işletmede <b>Nakit</b> veya <b>Kredi Kartı</b> ile yapabilirsiniz.</span>
               </div>
     
               <div class="mb-4">

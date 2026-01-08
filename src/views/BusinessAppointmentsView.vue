@@ -3,14 +3,22 @@
     import { supabase } from '../supabase'
     import { useAuthStore } from '../stores/auth'
     import DefaultLayout from '../layouts/DefaultLayout.vue'
-    import AppointmentCalendar from '../components/AppointmentCalendar.vue' // BİLEŞENİ ÇAĞIRDIK
+    import AppointmentCalendar from '../components/AppointmentCalendar.vue'
     
     const authStore = useAuthStore()
     const loading = ref(true)
     const appointments = ref([])
     const activeTab = ref('pending') 
     const filterMyStaffOnly = ref(false)
-    const selectedDateFilter = ref(null) // Takvimden gelen veri burada tutulacak
+    const selectedDateFilter = ref(null) 
+    
+    // ÖDEME MODALI STATE'LERİ
+    const isPaymentModalOpen = ref(false)
+    const paymentForm = ref({
+      id: null,
+      price: 0,
+      method: 'cash'
+    })
     
     // İstatistikler
     const stats = computed(() => {
@@ -20,7 +28,7 @@
       }
     })
     
-    // Takvimden Gelen Filtreleme İsteği
+    // Takvimden Gelen Filtreleme
     const handleCalendarFilter = (date) => {
       selectedDateFilter.value = date
     }
@@ -32,9 +40,11 @@
         const userId = authStore.user.id
         let businessId = null
         
+        // Owner mı?
         const { data: ownerData } = await supabase.from('businesses').select('id').eq('owner_id', userId).maybeSingle()
         if (ownerData) businessId = ownerData.id
         
+        // Staff mı?
         if (!businessId) {
           const { data: staffData } = await supabase.from('business_staff').select('business_id').eq('user_id', userId).maybeSingle()
           if (staffData) businessId = staffData.business_id
@@ -68,12 +78,12 @@
     const filteredAppointments = computed(() => {
       let list = appointments.value
     
-      // 1. Tarih Filtresi (Takvimden geldiyse)
+      // Tarih Filtresi
       if (selectedDateFilter.value) {
         list = list.filter(a => a.appointment_date === selectedDateFilter.value)
       }
     
-      // 2. Durum Filtresi (Sekmeler)
+      // Durum Filtresi
       if (activeTab.value === 'pending') {
         list = list.filter(a => a.status === 'pending')
       } else if (activeTab.value === 'approved') {
@@ -82,7 +92,7 @@
         list = list.filter(a => ['completed', 'rejected', 'cancelled'].includes(a.status))
       }
     
-      // 3. Personel Filtresi
+      // Personel Filtresi
       if (filterMyStaffOnly.value) {
         list = list.filter(a => a.business_staff.user_id === authStore.user.id)
       }
@@ -90,15 +100,61 @@
       return list
     })
     
+    // BASİT DURUM GÜNCELLEME (Reddet / İptal)
     const updateStatus = async (id, newStatus) => {
       if (newStatus === 'rejected' && !confirm('Randevuyu reddetmek istediğinize emin misiniz?')) return
-      if (newStatus === 'completed' && !confirm('Hizmet tamamlandı olarak işaretlensin mi?')) return
+      if (newStatus === 'cancelled' && !confirm('Randevuyu iptal etmek istediğinize emin misiniz?')) return
     
       try {
         const { error } = await supabase.from('appointments').update({ status: newStatus }).eq('id', id)
         if (error) throw error
+        
+        // Listeyi güncelle
         const index = appointments.value.findIndex(a => a.id === id)
         if (index !== -1) appointments.value[index].status = newStatus
+    
+      } catch (error) {
+        alert('Hata: ' + error.message)
+      }
+    }
+    
+    // ------------------------------------------------------------------
+    // ÖDEME VE TAMAMLAMA MANTIĞI 💰
+    // ------------------------------------------------------------------
+    
+    // Modalı Aç
+    const openPaymentModal = (appointment) => {
+      paymentForm.value = {
+        id: appointment.id,
+        price: appointment.business_services.price, // Varsayılan hizmet fiyatı
+        method: 'cash'
+      }
+      isPaymentModalOpen.value = true
+    }
+    
+    // Kaydet ve Tamamla
+    const completeAppointment = async () => {
+      try {
+        const { error } = await supabase
+          .from('appointments')
+          .update({ 
+            status: 'completed',
+            final_price: paymentForm.value.price,
+            payment_method: paymentForm.value.method
+          })
+          .eq('id', paymentForm.value.id)
+    
+        if (error) throw error
+    
+        // Listeyi güncelle
+        const index = appointments.value.findIndex(a => a.id === paymentForm.value.id)
+        if (index !== -1) {
+          appointments.value[index].status = 'completed'
+          appointments.value[index].final_price = paymentForm.value.price
+        }
+    
+        isPaymentModalOpen.value = false
+    
       } catch (error) {
         alert('Hata: ' + error.message)
       }
@@ -136,21 +192,16 @@
             </label>
           </div>
     
-          <!-- Loading -->
           <div v-if="loading" class="flex justify-center py-20">
             <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600"></div>
           </div>
     
           <div v-else>
             
-            <!-- YENİ BİLEŞEN: TAKVİM -->
-            <!-- randevuları gönderiyoruz, filtreleme emrini dinliyoruz -->
-            <AppointmentCalendar 
-              :appointments="appointments" 
-              @filter="handleCalendarFilter"
-            />
+            <!-- TAKVİM -->
+            <AppointmentCalendar :appointments="appointments" @filter="handleCalendarFilter" />
     
-            <!-- Sekmeler (Tabs) -->
+            <!-- Sekmeler -->
             <div class="flex gap-2 p-1 bg-gray-100 rounded-xl mb-6 w-full md:w-fit overflow-x-auto">
               <button 
                 @click="activeTab = 'pending'"
@@ -194,8 +245,8 @@
                 class="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                 :class="{'border-l-4 border-l-yellow-400': app.status === 'pending', 'border-l-4 border-l-green-500': app.status === 'approved'}"
               >
-                <!-- (Liste İçeriği Aynı Kaldı) -->
-                 <div class="flex items-center gap-4">
+                <!-- Sol -->
+                <div class="flex items-center gap-4">
                   <img :src="app.profiles?.avatar_url || 'https://via.placeholder.com/150'" class="w-14 h-14 rounded-full object-cover border border-gray-100">
                   <div>
                     <h3 class="font-bold text-gray-900 text-lg">{{ app.profiles?.full_name }}</h3>
@@ -206,12 +257,11 @@
                       <span>•</span>
                       <span>₺{{ app.business_services?.price }}</span>
                     </div>
-                    <p v-if="app.customer_note" class="text-xs text-gray-400 italic mt-1 bg-gray-50 inline-block px-2 py-1 rounded">
-                      "{{ app.customer_note }}"
-                    </p>
+                    <p v-if="app.customer_note" class="text-xs text-gray-400 italic mt-1 bg-gray-50 inline-block px-2 py-1 rounded">"{{ app.customer_note }}"</p>
                   </div>
                 </div>
     
+                <!-- Orta -->
                 <div class="flex flex-col md:items-end gap-1 text-gray-700">
                   <div class="flex items-center gap-2">
                     <span class="text-xl">🗓️</span>
@@ -226,6 +276,7 @@
                   </div>
                 </div>
     
+                <!-- Sağ (Aksiyonlar) -->
                 <div class="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0 pt-4 md:pt-0 border-t md:border-t-0 border-gray-100">
                   <template v-if="app.status === 'pending'">
                     <button @click="updateStatus(app.id, 'rejected')" class="flex-1 md:flex-none px-4 py-2 border border-red-200 text-red-600 rounded-lg font-bold hover:bg-red-50 transition text-sm">Reddet</button>
@@ -234,15 +285,21 @@
     
                   <template v-if="app.status === 'approved'">
                     <button @click="updateStatus(app.id, 'cancelled')" class="flex-1 md:flex-none px-4 py-2 text-gray-400 hover:text-red-500 text-xs font-medium">İptal Et</button>
-                    <button @click="updateStatus(app.id, 'completed')" class="flex-1 md:flex-none px-5 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition text-sm flex items-center gap-2">
+                    
+                    <!-- ÖDEME MODALINI AÇAN YENİ BUTON -->
+                    <button @click="openPaymentModal(app)" class="flex-1 md:flex-none px-5 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition text-sm flex items-center gap-2">
                       <span>Tamamla</span>
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     </button>
                   </template>
     
-                  <span v-if="['completed'].includes(app.status)" class="text-green-600 font-bold text-sm flex items-center gap-1">
-                    Tamamlandı <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                  </span>
+                  <div v-if="['completed'].includes(app.status)" class="text-right">
+                    <span class="text-green-600 font-bold text-sm flex items-center justify-end gap-1">
+                      Tamamlandı <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </span>
+                    <span class="text-xs text-gray-500" v-if="app.final_price">₺{{ app.final_price }} ({{ app.payment_method === 'cash' ? 'Nakit' : 'Kart' }})</span>
+                  </div>
+                  
                   <span v-if="['rejected', 'cancelled'].includes(app.status)" class="text-gray-400 font-medium text-sm">
                     {{ app.status === 'rejected' ? 'Reddedildi' : 'İptal Edildi' }}
                   </span>
@@ -251,6 +308,54 @@
             </div>
     
           </div>
+    
+          <!-- ÖDEME ALMA MODALI -->
+          <div v-if="isPaymentModalOpen" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in">
+              
+              <div class="bg-blue-600 p-4 text-white text-center">
+                <h3 class="font-bold text-lg">Ödeme ve Tamamlama</h3>
+                <p class="text-blue-100 text-xs">Hizmet bedelini doğrulayın.</p>
+              </div>
+    
+              <div class="p-6 space-y-4">
+                
+                <!-- Fiyat -->
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Tahsil Edilen Tutar (TL)</label>
+                  <input v-model="paymentForm.price" type="number" class="w-full border border-gray-300 rounded-lg px-4 py-2 text-lg font-bold text-gray-900 focus:ring-blue-500">
+                </div>
+    
+                <!-- Yöntem -->
+                <div>
+                  <label class="block text-sm font-bold text-gray-700 mb-1">Ödeme Yöntemi</label>
+                  <div class="grid grid-cols-2 gap-2">
+                    <button 
+                      @click="paymentForm.method = 'cash'"
+                      class="py-2 px-3 rounded-lg border text-sm font-medium transition flex items-center justify-center gap-2"
+                      :class="paymentForm.method === 'cash' ? 'bg-green-100 border-green-500 text-green-700' : 'bg-white border-gray-200 text-gray-600'"
+                    >
+                      💵 Nakit
+                    </button>
+                    <button 
+                      @click="paymentForm.method = 'credit_card'"
+                      class="py-2 px-3 rounded-lg border text-sm font-medium transition flex items-center justify-center gap-2"
+                      :class="paymentForm.method === 'credit_card' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-gray-200 text-gray-600'"
+                    >
+                      💳 Kart
+                    </button>
+                  </div>
+                </div>
+    
+                <div class="flex gap-3 mt-6">
+                  <button @click="isPaymentModalOpen = false" class="flex-1 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition">İptal</button>
+                  <button @click="completeAppointment" class="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg transition">Tamamla ✅</button>
+                </div>
+    
+              </div>
+            </div>
+          </div>
+    
         </div>
       </DefaultLayout>
     </template>
