@@ -13,7 +13,8 @@
   
   // Yetki Durumları
   const isPublisher = ref(false)
-  const hasBusinessAccess = ref(false) // Owner veya Staff
+  const isBusinessOwner = ref(false) // Sadece Patron
+  const isBusinessStaff = ref(false) // Sadece Çalışan
   
   const closeSidebar = () => {
     emit('close')
@@ -23,14 +24,13 @@
   onMounted(async () => {
     if (!authStore.user) return
   
-    // 1. Publisher Kontrolü (Profilde role sütunu)
+    // 1. Publisher Kontrolü
     if (authStore.profile?.role === 'publisher') {
       isPublisher.value = true
     }
   
-    // 2. İşletme Erişimi Kontrolü (Owner veya Staff)
+    // 2. İşletme SAHİBİ mi? (Owner)
     try {
-      // Owner mi?
       const { data: owner } = await supabase
         .from('businesses')
         .select('id')
@@ -38,17 +38,22 @@
         .maybeSingle()
       
       if (owner) {
-        hasBusinessAccess.value = true
-      } else {
-        // Staff mi?
-        const { data: staff } = await supabase
-          .from('business_staff')
-          .select('id')
-          .eq('user_id', authStore.user.id)
-          .maybeSingle()
-        
-        if (staff) hasBusinessAccess.value = true
+        isBusinessOwner.value = true
       }
+      
+      // 3. İşletme ÇALIŞANI mı? (Staff)
+      // Not: Bir kişi hem Owner hem Staff olabilir (Senin durumun).
+      // Bu durumda iki değişken de true olur, aşağıda ona göre filtreleriz.
+      const { data: staff } = await supabase
+        .from('business_staff')
+        .select('id')
+        .eq('user_id', authStore.user.id)
+        .maybeSingle()
+      
+      if (staff) {
+        isBusinessStaff.value = true
+      }
+  
     } catch (error) {
       console.error('Sidebar yetki hatası:', error)
     }
@@ -89,7 +94,7 @@
               </RouterLink>
             </li>
   
-            <!-- USER MENÜSÜ -->
+            <!-- USER MENÜSÜ (Müşteri Modu) -->
             <template v-if="authStore.user">
               <li>
                 <RouterLink to="/saved" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition">
@@ -100,20 +105,19 @@
                 <RouterLink to="/liked" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition">
                   <span class="mr-3 text-xl">❤️</span> Beğendiklerim
                 </RouterLink>
-              </li><li>
-  <RouterLink to="/my-appointments" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition">
-    <span class="mr-3 text-xl">📅</span> Randevularım
-  </RouterLink>
-</li>
+              </li>
+              <li>
+                <RouterLink to="/my-appointments" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-gray-100 transition">
+                  <span class="mr-3 text-xl">📅</span> Randevularım
+                </RouterLink>
+              </li>
             </template>
   
             <li class="border-t border-gray-200 my-3"></li>
   
             <!-- ============================================= -->
-            <!-- YETKİ BAZLI MENÜLER (DİNAMİK) -->
-            <!-- ============================================= -->
-  
             <!-- 1. YAYINCI (PUBLISHER) MENÜSÜ -->
+            <!-- ============================================= -->
             <template v-if="isPublisher">
               <li class="px-4 py-2">
                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">İçerik Üreticisi</span>
@@ -136,29 +140,45 @@
               </li>
             </template>
   
+            <!-- ============================================= -->
             <!-- 2. İŞLETME (BUSINESS) MENÜSÜ -->
-            <template v-if="hasBusinessAccess">
+            <!-- ============================================= -->
+            
+            <!-- Hem Owner hem Staff bu başlığı görür -->
+            <template v-if="isBusinessOwner || isBusinessStaff">
               <li class="px-4 py-2 mt-2">
                 <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">İşletme Yönetimi</span>
               </li>
               
-              <!-- Eğer publisher değilse Dashboard linkini burada gösterelim ki erişebilsin -->
+              <!-- Dashboard Linki: Eğer Publisher değilse buraya koyalım ki erişsin -->
               <li v-if="!isPublisher">
                  <RouterLink to="/dashboard" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition">
                   <span class="mr-3 text-xl">📊</span> İşletme Paneli
                 </RouterLink>
               </li>
   
-              <li>
-                <RouterLink to="/my-staff" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition">
-                  <span class="mr-3 text-xl">👥</span> Ekip & Uzmanlar
-                </RouterLink>
-              </li>
+              <!-- SADECE OWNER GÖRÜR (Patron Menüsü) -->
+              <template v-if="isBusinessOwner">
+                <li>
+                  <RouterLink to="/my-staff" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition">
+                    <span class="mr-3 text-xl">👥</span> Ekip & Uzmanlar
+                  </RouterLink>
+                </li>
+                <li>
+                  <RouterLink to="/my-services" @click="closeSidebar" class="flex items-center px-4 py-3 text-gray-700 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition">
+                    <span class="mr-3 text-xl">✂️</span> Hizmetler
+                  </RouterLink>
+                </li>
+              </template>
+  
+              <!-- HER İKİSİ DE GÖRÜR (Randevu Yönetimi) -->
+              <!-- Şimdilik "Yakında" yazıyor ama birazdan burayı yapacağız -->
               <li>
                  <a href="#" class="flex items-center px-4 py-3 text-gray-400 cursor-not-allowed rounded-lg">
-                  <span class="mr-3 text-xl">📅</span> Randevular <span class="ml-2 text-[10px] bg-gray-200 px-1 rounded">Yakında</span>
+                  <span class="mr-3 text-xl">📅</span> Gelen Randevular <span class="ml-2 text-[10px] bg-gray-200 px-1 rounded">Yakında</span>
                 </a>
               </li>
+  
             </template>
   
           </ul>
