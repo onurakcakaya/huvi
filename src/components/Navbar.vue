@@ -40,6 +40,10 @@
               </span>
             </RouterLink>
           </div>
+          <!-- Navbar linkleri arasına -->
+<router-link to="/explore" class="hidden md:block text-gray-600 hover:text-primary-600 font-medium transition">
+  İşletmeleri Keşfet
+</router-link>
   
           <!-- SAĞ TARAF (Menüler) -->
           <div class="flex items-center space-x-3">
