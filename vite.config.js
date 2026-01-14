@@ -8,15 +8,21 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'autoUpdate', // Güncelleme gelince otomatik yenile
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      registerType: 'autoUpdate',
+      includeAssets: [
+        'favicon.ico',
+        'apple-touch-icon.png',
+        'masked-icon.svg'
+      ],
       manifest: {
         name: 'Huvi - Güzellik ve Bakım',
         short_name: 'Huvi',
         description: 'Uzmanlardan güzellik tüyoları, randevu ve ürün keşfi.',
-        theme_color: '#d65063', // Bizim Rose Gold (primary-500) rengimiz
+        theme_color: '#d65063',
         background_color: '#ffffff',
-        display: 'standalone', // Tarayıcı çubuğunu gizle, tam ekran yap
+        display: 'standalone',
+        start_url: '/',
+        scope: '/',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -35,6 +41,11 @@ export default defineConfig({
             purpose: 'any maskable'
           }
         ]
+      },
+      workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true
       }
     })
   ],

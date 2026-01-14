@@ -6,8 +6,9 @@
 
 /* GENEL STİL AYARLARI */
 body {
-  font-family: 'Inter', sans-serif; /* Sadece temiz, modern font */
-  @apply bg-slate-50 text-slate-800;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Sayfa Geçiş Animasyonları (Fade) */
@@ -19,4 +20,13 @@ body {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+:root {
+  --vh: 100vh;
+}
+
+@supports (-webkit-touch-callout: none) {
+  :root {
+    --vh: 100svh;
+  }
 }

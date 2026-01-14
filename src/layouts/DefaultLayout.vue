@@ -18,7 +18,8 @@
   </script>
   
   <template>
-    <div class="min-h-screen bg-gray-50">
+    <div class="bg-gray-50" style="min-height: var(--vh);">
+
       
       <!-- Navbar'a toggle emrini dinlemesini söylüyoruz -->
       <Navbar @toggleSidebar="toggleSidebar" />
