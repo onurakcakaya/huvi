@@ -18,7 +18,6 @@
       errorMessage.value = ''
       await authStore.login(email.value, password.value)
     } catch (error) {
-      // Burada o bahsettiğimiz iyileştirmeyi yaptık
       if (error.message.includes('Email not confirmed')) {
         errorMessage.value = 'Lütfen önce e-posta adresinizi doğrulayın.'
       } else if (error.message.includes('Invalid login credentials')) {
@@ -58,9 +57,17 @@
           </div>
   
           <div>
-            <div class="flex justify-between items-center mb-2">
+            <!-- ŞİFRE LABEL VE UNUTTUM LİNKİ -->
+            <div class="flex justify-between items-center mb-1">
               <label class="block text-sm font-medium text-gray-700">Şifre</label>
+              <RouterLink 
+                to="/forgot-password" 
+                class="text-sm text-primary-600 hover:text-primary-500 hover:underline font-medium transition"
+              >
+                Şifreni mi unuttun?
+              </RouterLink>
             </div>
+            
             <input 
               v-model="password" 
               type="password" 
