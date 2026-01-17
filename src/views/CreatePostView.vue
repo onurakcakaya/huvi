@@ -126,7 +126,7 @@
       }
   
       message.value = 'İçerik başarıyla yayınlandı! 🚀'
-      setTimeout(() => router.push('/dashboard/posts'), 2000)
+      setTimeout(() => router.push('/my-posts'), 2000)
   
     } catch (error) {
       message.value = 'Hata: ' + error.message
