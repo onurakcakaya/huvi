@@ -32,9 +32,17 @@
   
   // 1. Kategorileri Getir
   const fetchCategories = async () => {
-    const { data } = await supabase.from('categories').select('*').order('name')
+  try {
+    // RPC fonksiyonunu çağırıyoruz
+    const { data, error } = await supabase.rpc('get_categories_with_count')
+    
+    if (error) throw error
     categories.value = data
+
+  } catch (error) {
+    console.error('Kategori hatası:', error.message)
   }
+}
   
   // Postları Getir
 const fetchPosts = async (isLoadMore = false) => {
