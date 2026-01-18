@@ -1,7 +1,7 @@
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { VitePWA } from 'vite-plugin-pwa' // <--- BU EKLENDİ
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -38,10 +38,13 @@ export default defineConfig({
           }
         ]
       },
+      // 👇 KRİTİK GÜNCELLEME BURADA YAPILDI 👇
       workbox: {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true
+        skipWaiting: true,
+        // OneSignal'in beynini bizim PWA Worker'ına entegre ediyoruz:
+        importScripts: ["https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js"]
       }
     })
   ],
