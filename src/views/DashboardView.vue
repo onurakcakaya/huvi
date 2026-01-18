@@ -40,7 +40,7 @@ const dailyTip = computed(() => {
     return {
       title: "Kendini Tanıt 👋",
       text: "Daha fazla takipçi kazanmak için profilini düzenle ve sosyal medyada paylaş.",
-      action: "/settings/settings",
+      action: "/dashboard/settings",
       btnText: "Profili Düzenle"
     }
   }
