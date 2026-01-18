@@ -22,14 +22,16 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <!-- OneSignal -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "34b31005-ddf0-4b6d-b089-9b00c1104a19",
-      // Bu satırı ekleyelim ki worker'ın yerini kesin bilsin
-      serviceWorkerPath: "sw.js", 
+      // 👇 BU İKİ SATIR HAYAT KURTARIR 👇
+      serviceWorkerPath: "sw.js",      // "Bana o silinen dosyayı sorma, sw.js kullan" diyoruz.
+      serviceWorkerParam: { scope: '/' }, 
       notifyButton: {
         enable: true,
       },
