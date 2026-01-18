@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+      { 
+        "source": "/OneSignalSDKWorker.js", 
+        "destination": "/sw.js" 
+      },
+      { 
+        "source": "/OneSignalSDKUpdaterWorker.js", 
+        "destination": "/sw.js" 
+      }
+    ]
+  }
