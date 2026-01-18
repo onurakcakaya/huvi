@@ -100,7 +100,7 @@ const emit = defineEmits(['toggleSidebar'])
                 <span class="mr-2">⚡</span> Yönetim Paneli
               </RouterLink>
               
-              <RouterLink to="/settings/publisher" class="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition">
+              <RouterLink to="/profile/:id" class="flex items-center px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition">
                 <span class="mr-2">👤</span> Profil Ayarları
               </RouterLink>
               
