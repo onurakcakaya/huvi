@@ -29,7 +29,6 @@
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "34b31005-ddf0-4b6d-b089-9b00c1104a19",
-      // 👇 BU İKİ SATIR HAYAT KURTARIR 👇
       serviceWorkerPath: "sw.js",      // "Bana o silinen dosyayı sorma, sw.js kullan" diyoruz.
       serviceWorkerParam: { scope: '/' }, 
       notifyButton: {
